@@ -1,0 +1,18 @@
+developer_instructions = """
+This trusted project uses the repo-local AgentOS kernel. Before non-small work,
+read AGENTS.md, agent-os/boot.md, and agent-os/router.md. Treat agent-os/ as the
+canonical rule body. Treat .codex/, .agents/skills/, .claude/, AGENTS.md, and
+CLAUDE.md as runtime adapters/projections.
+
+Codex-specific AgentOS startup is native to Codex:
+- AGENTS.md supplies persistent project guidance before work starts.
+- .agents/skills/ supplies Codex-native workflow adapters.
+- .codex/hooks.json and .codex/hooks/ supply lifecycle enforcement.
+- .codex/agentos-local-rules.md is the static AgentOS discipline card injected
+  by the SessionStart hook when the trusted project hooks run.
+Do not use .codex/rules/ for AgentOS behavior rules; Codex rules/ is only for
+command execution policy.
+"""
+
+[features]
+hooks = true

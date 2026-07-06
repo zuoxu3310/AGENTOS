@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fusion Workflow"
+  short_description: "Blind multi-model panel with an independent judge"
+  default_prompt: "Use $fusion-workflow ONLY when the user explicitly invokes Fusion (/fusion) — fan the question out to a blind panel, judge with an independent cold worker, deliver one fused answer with provenance."

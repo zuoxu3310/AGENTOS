@@ -1,0 +1,4 @@
+interface:
+  display_name: "Route Promotion Review"
+  short_description: "Keep tool outputs on task"
+  default_prompt: "Use $route-promotion-review to classify a tool result, report, or subagent output before promoting it."

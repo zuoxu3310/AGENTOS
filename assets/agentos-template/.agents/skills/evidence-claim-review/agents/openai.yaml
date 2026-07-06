@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evidence Claim Review"
+  short_description: "Check evidence before final claims"
+  default_prompt: "Use $evidence-claim-review to check claim strength before a final answer, handoff, or memory write."

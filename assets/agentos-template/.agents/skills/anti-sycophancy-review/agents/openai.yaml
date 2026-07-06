@@ -1,0 +1,4 @@
+interface:
+  display_name: "Anti-Sycophancy Review"
+  short_description: "Step outside the user's framing"
+  default_prompt: "Use $anti-sycophancy-review to surface framing assumptions and give an un-anchored judgment before answering a judgment-type question."

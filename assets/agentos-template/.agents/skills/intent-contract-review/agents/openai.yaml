@@ -1,0 +1,4 @@
+interface:
+  display_name: "Intent Contract Review"
+  short_description: "Clarify intent and task contracts"
+  default_prompt: "Use $intent-contract-review to pin the active user object and task contract before execution."

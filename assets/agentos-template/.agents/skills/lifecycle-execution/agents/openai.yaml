@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lifecycle Execution"
+  short_description: "Run Agent OS task lifecycle"
+  default_prompt: "Use $lifecycle-execution to run a non-small Agent OS task from intake to verified final response."

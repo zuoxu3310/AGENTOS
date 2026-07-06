@@ -1,0 +1,4 @@
+interface:
+  display_name: "Memory Wiki Routing"
+  short_description: "Route AgentOS memory and wiki writes"
+  default_prompt: "Use $memory-wiki-routing to route AgentOS memory, wiki, ledger, or handoff updates."

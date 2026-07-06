@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: lint · install · validate · e2e
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Structural lint (kernel template)
+        run: python3 assets/agentos-template/agent-os/tools/aos-lint.py
+
+      - name: Install into a scratch project
+        run: python3 scripts/install-agentos.py "$RUNNER_TEMP/aos-target"
+
+      - name: Validate the install
+        run: python3 scripts/validate-agentos-install.py "$RUNNER_TEMP/aos-target"
+
+      - name: End-to-end pressure test
+        working-directory: ${{ runner.temp }}/aos-target
+        run: node work/e2e-pressure-tests/agentos-e2e-pressure-test.mjs
+
+      - name: Lint the installed kernel
+        working-directory: ${{ runner.temp }}/aos-target
+        run: python3 agent-os/tools/aos-lint.py

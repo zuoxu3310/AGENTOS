@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prompt Craft Review"
+  short_description: "Engineer prompts before dispatching to another model"
+  default_prompt: "Use $prompt-craft-review to apply the AgentOS Prompt Craft Gate before writing a prompt for another model or agent."

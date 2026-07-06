@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reasoning Causality Review"
+  short_description: "Review reasoning and causal claims"
+  default_prompt: "Use $reasoning-causality-review to review a causal or root-cause claim against Agent OS evidence gates."

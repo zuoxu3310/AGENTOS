@@ -1,0 +1,4 @@
+interface:
+  display_name: "Minimal Code Review"
+  short_description: "Reuse before generating code"
+  default_prompt: "Use $minimal-code-review to run the minimal-code decision ladder before writing new code."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dynamic Workflow"
+  short_description: "Run auditable AgentOS worker workflows"
+  default_prompt: "Use $dynamic-workflow to run an auditable AgentOS multi-worker workflow."

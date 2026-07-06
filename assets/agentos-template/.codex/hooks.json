@@ -1,0 +1,65 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PYTHONDONTWRITEBYTECODE=1 python3 -c \"from pathlib import Path; import runpy, sys; p=Path.cwd(); r=next((q for q in (p,*p.parents) if (q/'agent-os').is_dir()), p); sys.path.insert(0, str(r/'.codex/hooks')); runpy.run_path(str(r/'.codex/hooks'/sys.argv[1]), run_name='__main__')\" aos_session_start.py",
+            "statusMessage": "Loading AgentOS state"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PYTHONDONTWRITEBYTECODE=1 python3 -c \"from pathlib import Path; import runpy, sys; p=Path.cwd(); r=next((q for q in (p,*p.parents) if (q/'agent-os').is_dir()), p); sys.path.insert(0, str(r/'.codex/hooks')); runpy.run_path(str(r/'.codex/hooks'/sys.argv[1]), run_name='__main__')\" aos_prompt_baseline.py",
+            "statusMessage": "Recording AgentOS audit baseline"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PYTHONDONTWRITEBYTECODE=1 python3 -c \"from pathlib import Path; import runpy, sys; p=Path.cwd(); r=next((q for q in (p,*p.parents) if (q/'agent-os').is_dir()), p); sys.path.insert(0, str(r/'.codex/hooks')); runpy.run_path(str(r/'.codex/hooks'/sys.argv[1]), run_name='__main__')\" aos_stop_gate.py",
+            "timeout": 30,
+            "statusMessage": "Checking AgentOS audit"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "^(Bash|apply_patch|Edit|Write|MultiEdit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PYTHONDONTWRITEBYTECODE=1 python3 -c \"from pathlib import Path; import runpy, sys; p=Path.cwd(); r=next((q for q in (p,*p.parents) if (q/'agent-os').is_dir()), p); sys.path.insert(0, str(r/'.codex/hooks')); runpy.run_path(str(r/'.codex/hooks'/sys.argv[1]), run_name='__main__')\" aos_guard_enforcer.py",
+            "timeout": 30,
+            "statusMessage": "Checking AgentOS protected paths"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(Bash|apply_patch|Edit|Write|MultiEdit)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PYTHONDONTWRITEBYTECODE=1 python3 -c \"from pathlib import Path; import runpy, sys; p=Path.cwd(); r=next((q for q in (p,*p.parents) if (q/'agent-os').is_dir()), p); sys.path.insert(0, str(r/'.codex/hooks')); runpy.run_path(str(r/'.codex/hooks'/sys.argv[1]), run_name='__main__')\" aos_kernel_lint.py",
+            "timeout": 60,
+            "statusMessage": "Running AgentOS lint"
+          }
+        ]
+      }
+    ]
+  }
+}

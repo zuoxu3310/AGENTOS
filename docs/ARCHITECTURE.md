@@ -80,15 +80,22 @@ The load-bearing guarantee AgentOS *can* make mechanically:
 An entry is:
 
 ```
-## <n> — <one-line label>
+## <n> (<sid>) — <one-line label>
 - object:
 - contract:
 - action+evidence:
 - status:
+- gates:
+- intent:
 ```
 
-The Stop hook checks: (1) the log gained at least one entry beyond the baseline; (2) the
-newest entry has all four fields; (3) entry numbers are unique and contiguous. It blocks
+The Stop hook checks: (1) THIS session appended a new entry (the `(<sid>)` tag lets
+concurrent sessions share one log; cross-session number collisions are legal and only a
+session's own numbers must strictly increase, append-only); (2) all six fields are
+present, the gates line disposes every review gate, and on real-instruction turns the
+intent line quotes the user verbatim (substring of the turn-opening message group;
+harness injections never count as the user's words); (3) replies over 1200 characters
+carry a `- restate:` line evidencing the zero-context restate test. It blocks
 up to a bounded number of retries, then fails open and records a `missed` row in the
 script-owned `compliance-log.tsv` so misses are **measurable instead of silent**.
 

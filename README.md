@@ -168,14 +168,20 @@ a hook-enabled runtime:
 2. **UserPromptSubmit** records the audit baseline for the turn.
 3. The agent does the work and appends an entry to `agent-os/state/audit-log.md`:
    ```
-   ## <n> — <one-line label>
+   ## <n> (<sid>) — <one-line label>
    - object:
    - contract:
    - action+evidence:
    - status:
+   - gates:
+   - intent:
    ```
-4. **Stop** verifies the log gained a well-formed, uniquely-numbered entry beyond the
-   baseline. If not, it **blocks** and feeds the failure back to the agent (up to a
+4. **Stop** verifies THIS session appended a well-formed entry: six fields present,
+   the gates line disposes every review gate, the intent line quotes the user's own
+   words verbatim (checked as a substring of the turn-opening message group), and
+   long replies carry a zero-context restate line. Concurrent sessions share the log
+   via the `(<sid>)` session tag — cross-session number collisions are legal; only a
+   session's own numbers must increase, and the log is append-only. If not, it **blocks** and feeds the failure back to the agent (up to a
    bounded number of retries, then it fails open and records a `missed` row so the miss
    is measurable instead of silent).
 5. **PostToolUse** re-runs `aos-lint` after any kernel edit; a structural failure is fed

@@ -14,13 +14,22 @@ def main() -> int:
     if not log.is_file():
         return 0
 
-    nxt = aos.max_entry(log.read_text(encoding="utf-8")) + 1
+    text = log.read_text(encoding="utf-8")
+    nxt = aos.max_entry(text) + 1
     session_id = str(data.get("session_id") or data.get("conversation_id") or "")
+    sid = aos.sid_of(session_id)
     state = aos.load_state(root, session_id)
-    state.update({"baseline": nxt - 1, "retries": 0})
+    state.update({"last_n": max(aos.entries_for_sid(text, sid), default=0), "retries": 0})
     aos.save_state(root, session_id, state)
 
-    print(f"[AgentOS] This turn's audit entry: #{nxt} -> agent-os/state/audit-log.md (the Codex Stop hook will verify it; end your answer with an audit block closing on #{nxt})")
+    print(
+        f"[AgentOS] This turn's audit entry: `## {nxt} ({sid}) — <label>` -> agent-os/state/audit-log.md"
+        " (APPEND only; concurrent sessions share the log — if another session takes"
+        f" #{nxt} first, any higher number is fine). Codex Stop gate checks a six-line entry:"
+        " four base fields + `- gates:` per-gate dispositions (intent= mandatory, >=3 total) + `- intent:` with a"
+        " 「verbatim quote of this turn's user message」 when a transcript is available."
+        f" End the visible answer with the audit block closing #{nxt}"
+    )
     return 0
 
 

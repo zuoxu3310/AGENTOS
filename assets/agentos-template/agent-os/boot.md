@@ -25,12 +25,16 @@ Do not load every file by default. Load the minimum needed to preserve the activ
 
 In the Claude Code runtime, a SessionStart hook (`.claude/hooks/aos_session_start.py`)
 injects the kernel card — invariants, state digest, and next audit entry number —
-automatically at startup, resume, clear, and after compaction.
+automatically at startup, resume, clear, and after compaction. Since 2026-07-12
+(owner ruling) it also injects the full text of every review gate plus
+agent-execution-lifecycle.md as resident method bodies (~50 KB); rare-path bodies
+(fusion/dynamic workflows, memory/, adapters/) stay on-demand.
 
 In trusted Codex projects, Codex reads `AGENTS.md` before work, then project-local
 `.codex/config.toml` and `.codex/hooks.json` wire native Codex hooks. The Codex
 SessionStart hook injects `.codex/agentos-local-rules.md` plus the dynamic state
-digest. Steps 2-4 remain the manual path for untrusted Codex projects, other
+digest, and (since 2026-07-12) the same resident method bodies as the Claude
+adapter. Steps 2-4 remain the manual path for untrusted Codex projects, other
 runtimes, and deep dives.
 
 Load `agent-os/workflows/dynamic-workflow.md` only when the latest user message or Task Contract requires script-owned, multi-worker, multi-thread, or recoverable workflow execution.

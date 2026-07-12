@@ -83,6 +83,27 @@ def undigested_errors(root) -> list[str]:
     return out
 
 
+def resident_bodies(root) -> list[str]:
+    """Full text of the every-turn method bodies (owner ruling 2026-07-12).
+
+    The rules card carries triggers and constraints (the what-not); these
+    files carry method (the how). Measured 2026-07-12: 10 review gates +
+    lifecycle ≈ 50 KB ≈ 6% of a 200k window — cheap enough to reside.
+    Rare-path bodies (fusion/dynamic workflows, memory/, adapters/) stay
+    on-demand via router.md.
+    """
+    files = sorted((root / "agent-os" / "review").glob("*.md"))
+    files.append(root / "agent-os" / "workflows" / "agent-execution-lifecycle.md")
+    out = []
+    for f in files:
+        if not f.is_file():
+            continue
+        rel = f.relative_to(root).as_posix()
+        body = f.read_text(encoding="utf-8", errors="replace").strip()
+        out.append(f"\n===== RESIDENT METHOD BODY: {rel} =====\n{body}")
+    return out
+
+
 def main() -> int:
     data = aos.hook_input()
     if aos.disabled():
@@ -125,6 +146,15 @@ def main() -> int:
     if undigested:
         lines.append(f"Undigested error RECORDS, force-read ({len(undigested)} newest — what happened + the rule; run error-digest when they pile up):")
         lines.extend(undigested)
+    bodies = resident_bodies(root)
+    if bodies:
+        lines.append(
+            "Resident method bodies (owner ruling 2026-07-12): full text of every"
+            " review gate + the execution lifecycle — the HOW behind the rules card's"
+            " triggers. Apply these when walking gates; re-read the files only when"
+            " editing them. Rare-path bodies (fusion/dynamic workflows, memory/,"
+            " adapters/) remain on-demand via router.md.")
+        lines.extend(bodies)
     print("\n".join(lines))
     return 0
 

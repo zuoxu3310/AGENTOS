@@ -55,10 +55,10 @@ class HookHarness:
     def close(self) -> None:
         self._temporary.cleanup()
 
-    def set_lint(self, *, exit_code: int) -> None:
+    def set_lint(self, *, exit_code: int, message: str = "FAIL broken document") -> None:
         body = (
             "import sys\n"
-            + ("print('PASS test lint')\n" if exit_code == 0 else "print('FAIL broken document')\n")
+            + ("print('PASS test lint')\n" if exit_code == 0 else f"print({message!r})\n")
             + f"raise SystemExit({exit_code})\n"
         )
         (self.root / "agent-os" / "tools" / "aos-lint.py").write_text(
@@ -232,13 +232,27 @@ class RuntimeAdapterContractTests(unittest.TestCase):
             self.assertEqual("", shell.stdout.strip())
             self.assertEqual("", shell.stderr.strip())
 
-            harness.set_lint(exit_code=1)
+            harness.set_lint(
+                exit_code=1,
+                message="FAIL agent-os/boot.md missing boot structure",
+            )
             governed = harness.run(
                 "aos_kernel_lint.py",
                 {"tool_name": "Edit", "tool_input": {"file_path": "agent-os/boot.md"}},
             )
             self.assertEqual(2, governed.returncode)
-            self.assertIn("broken document", governed.stderr)
+            self.assertIn("agent-os/boot.md", governed.stderr)
+
+            harness.set_lint(
+                exit_code=1,
+                message="FAIL wiki/legacy-note.md has an old project format",
+            )
+            unrelated = harness.run(
+                "aos_kernel_lint.py",
+                {"tool_name": "Edit", "tool_input": {"file_path": "agent-os/boot.md"}},
+            )
+            self.assertEqual(0, unrelated.returncode, unrelated.stderr)
+            self.assertEqual("", unrelated.stderr.strip())
 
     def test_many_tools_do_not_repeat_goal_attention(self) -> None:
         codex = self.harnesses[0]

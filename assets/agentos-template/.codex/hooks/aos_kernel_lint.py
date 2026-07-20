@@ -57,6 +57,45 @@ def edited_governed_paths(data: dict, root: Path) -> list[str]:
     return sorted({item for item in relative if item and _governed(item)})
 
 
+def relevant_failures(paths: list[str], failures: list[str]) -> list[str]:
+    """Keep failures caused by or structurally coupled to the edited paths."""
+    selected: list[str] = []
+    for failure in failures:
+        if any(path in failure for path in paths):
+            selected.append(failure)
+            continue
+        for path in paths:
+            coupled = ()
+            if path.startswith("agent-os/"):
+                if path == "agent-os/rules-card.md":
+                    coupled = ("AGENTS.md", "CLAUDE.md", "projection", "rules card")
+                elif path == "agent-os/review/prompt-craft-gate.md":
+                    coupled = ("prompt source",)
+                elif path == "agent-os/artifact-contracts.toml":
+                    coupled = ("artifact contract",)
+            elif path.startswith("wiki/errors/"):
+                coupled = (
+                    "error index", "Error Learning", "error_id", "root_id",
+                    "same root", "error landing", "error regression",
+                )
+            elif path.startswith("wiki/raw/"):
+                coupled = ("raw manifest", "wiki index managed view")
+            elif path.startswith("wiki/knowledge/"):
+                coupled = ("knowledge ", "wiki index managed view")
+            elif path.startswith("wiki/"):
+                coupled = ("wiki index managed view",)
+            elif path == "PLANS.md":
+                coupled = ("single current plan", "ledger projection invalid")
+            elif path == "HANDOFF.md":
+                coupled = ("single current handoff", "ledger projection invalid")
+            elif path in ROOT_LEDGERS:
+                coupled = ("ledger projection invalid",)
+            if coupled and any(token in failure for token in coupled):
+                selected.append(failure)
+                break
+    return selected
+
+
 def main() -> int:
     data = aos.hook_input()
     if aos.disabled():
@@ -73,7 +112,14 @@ def main() -> int:
     )
     if proc.returncode == 0:
         return 0
-    failures = [line for line in proc.stdout.splitlines() if line.startswith("FAIL")]
+    failures = relevant_failures(
+        paths,
+        [line for line in proc.stdout.splitlines() if line.startswith("FAIL")],
+    )
+    if not failures and paths == ["agent-os/tools/aos-lint.py"] and proc.stderr.strip():
+        failures = [proc.stderr.strip()]
+    if not failures:
+        return 0
     print(
         "AgentOS 文档结构检查未通过（刚修改："
         + ", ".join(paths)

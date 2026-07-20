@@ -1,65 +1,103 @@
 # Error Learning
 
-Date: 2026-07-06
-
 ## Purpose
 
-Record confirmed agent mistakes so the same failure class gets caught earlier next time.
+Turn a confirmed agent mistake into a smaller probability of the same future
+failure. Fix the user-visible problem first. A record is useful only when it
+can be recalled by a real trigger and points to a protection that can be
+checked.
 
-This is the kernel rule. The global `error-learning` skill is a convenience adapter;
-where it is absent, this file is sufficient to do the work by hand.
+## Record Boundary
 
-Fix the user-facing problem first. Record the error after the fix.
+Record a user correction, violated instruction, fabricated claim, skipped
+required verification, repeated failure, or self-confirmed mistake. Do not
+record a new requirement, preference, exploratory change, or unanswered
+diagnostic question as an error.
 
-## Record / Do Not Record
+## Same-Root Rule
 
-Record when:
+Before creating a file, compare violated rule, failure mode, correction,
+source-of-truth mistake, and skipped verification. If any load-bearing root is
+the same, update the existing root and increment `recurrence`. When uncertain,
+merge and make the broader trigger explicit.
 
-```text
-- the user clearly corrected an agent mistake
-- an explicit instruction was violated
-- facts, evidence, progress, file state, or tool results were fabricated
-- a required tool, verification, hook, or skill was skipped
-- the same failure mode recurred
-- the agent detected its own confirmed mistake
+## Machine Header
+
+Every active error record starts with YAML frontmatter:
+
+```yaml
+---
+error_id:
+root_id:
+status: observed | landed | verified | recurring | superseded
+recurrence: 1
+triggers: []
+landing_level: 0
+landing_target:
+regression:
+---
 ```
 
-Do not record: new requirements, direction changes, preferences, exploratory pivots,
-or diagnostic questions ("any problems here?" is a question, not a correction).
+`error_id` and `root_id` are stable and unique. `triggers` are concrete terms
+or action conditions, not broad topics. A landing target or regression anchor
+must resolve to a real repository path; an optional `::test_name` suffix names
+a test inside that file.
 
-## Location
+## Landing Rule
 
-`wiki/errors/` (lint-required in AgentOS projects). Seed `_INDEX.md` when missing.
-
-## Procedure
-
-```text
-1. Same-root check first: same violated rule, same failure mode, same correction
-   phrase, same source-of-truth mistake, or same skipped verification
-   -> append one Recurrence line to the existing file. When unsure, merge.
-2. Otherwise create one concise file:
-   - what went wrong (1-3 lines)
-   - what to do next time (1-3 lines, one rule per line)
-   - evidence anchor: the command, path, or output that proves the mistake
-     (re-runnable; "I remember" is not an anchor)
-3. Update _INDEX.md: high-priority rules, categories, recent-undigested list, counts.
-4. Health limits: single file <= 30 lines; digest <= 50 lines; each high-priority
-   index rule <= 200 characters. On breach: compress and archive with links.
-   Never delete source data.
-5. Digest when undigested errors reach 10, or 3+ share one pattern:
-   pattern-level rules only, no case history, no meta-commentary.
-```
-
-## Output
-
-One line in the user-facing reply:
+Choose the first level the correction can support:
 
 ```text
-_(error logged: <one sentence>; new|recurrence; health ok|cleaned)_
+1. artifact shape     schema or required deliverable field
+2. external check     test, lint, hook, or other independent guard
+3. positive exemplar  user-accepted artifact to imitate
+4. narrower contract  remove the unsafe decision surface
+5. prose rule         only with a written reason levels 1-4 do not fit
 ```
 
-## Probe Feed
+For `recurrence >= 2`, Level 1 or 2 plus a real regression anchor is mandatory,
+unless the error file records an explicit user waiver. Landing happens in the
+same turn as the fix; an experiment may verify it but may not defer it.
 
-Recorded errors are prime material for the user's wrong-premise probes
-("the trap you fell into last time"). Keep titles one-sentence so each error
-can be turned into a probe question directly.
+After a landing is verified, use `verified`. If it happens again, use
+`recurring`: the protection failed and must be strengthened rather than adding
+another essay.
+
+## Recall
+
+Before a related high-risk action, `memory-wiki-routing` matches explicit
+`triggers`, retrieves at most three non-superseded rules, and verifies their
+landing targets. Do not preload the entire error library and do not use vector
+search for this bounded collection.
+
+## Derived Views And Health
+
+`wiki/errors/_INDEX.md` has a semantic high-priority rule section and a derived
+record/metric section. `--fix-memory-views` may regenerate only the derived
+section. It tracks:
+
+```text
+recurrences after landing
+active errors without regression protection
+stale, duplicate, or conflicting rules
+```
+
+An active record is invalid if its machine header is incomplete, its landing
+target is missing, the same `root_id` is split across files, or a recurrence
+of two or more lacks Level 1/2 protection and regression. Keep each record at
+or below 45 lines including its machine header; archive or digest source detail
+without deleting it.
+
+## Minimal Body
+
+After the header, keep only:
+
+```text
+# concise failure title
+## What happened
+## Correction
+## Landing
+## Evidence Anchor
+```
+
+The body explains the root and evidence; the header enables recall and checks.

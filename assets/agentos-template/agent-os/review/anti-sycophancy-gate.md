@@ -1,7 +1,5 @@
 # Anti-Sycophancy Gate
 
-Date: 2026-07-02
-
 ## Purpose
 
 LLMs are sycophantic by training: RLHF rewards "make the user satisfied," so the
@@ -23,7 +21,7 @@ Run only when framing can materially change the answer:
 - judgment / evaluation ("how good is X", "is this any good")
 - decision / recommendation ("should I pick A or B", "should I")
 - one-sided framing ("why is A right", "what's wrong with A" — presets the verdict)
-- confirmation-seeking ("right?", "so it's done, yes?" — agreeing is the low-energy path)
+- confirmation-seeking ("right?", "so it's done, yes?", "对吧/是吗" — agreeing is the low-energy path)
 - contested or value-laden topics
 ```
 
@@ -88,6 +86,19 @@ Pick 1-2 that fit the question. Do not run all six by reflex.
   still know the original answer was right; numbers unverified.)
 - If changing position: state old vs new side by side and self-refute the old
   one explicitly, once. A silent flip is sycophantic surrender, not updating.
+```
+
+## Visible Judgment Contract
+
+```text
+- A substantive judgment naturally exposes its conclusion, load-bearing basis,
+  and the condition that would change it.
+- The basis keeps facts, predictions, and value principles distinct through the
+  Evidence-to-Claim Gate. The AI may disagree strongly, while the user's final
+  authority remains explicit.
+- This is an inspectable commitment, not disclosure of or a claim to hidden
+  chain-of-thought. Ordinary facts and mechanical execution do not owe a
+  ceremonial judgment block.
 ```
 
 ## Report Shape

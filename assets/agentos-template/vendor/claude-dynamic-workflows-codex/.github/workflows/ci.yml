@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ["18.x", "20.x", "22.x"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Package and skill smoke checks
+        run: |
+          npm pack --dry-run --ignore-scripts
+          npm run sync-skill -- "$RUNNER_TEMP/codex-workflows-skill"
+      # Zero dependencies — no install step. Every suite is offline (no Codex, no
+      # network): unit checks, the fake App Server protocol contract, viewer
+      # robustness across run shapes, the no-reload live update channel, and
+      # the ASCII map renderer — with no credentials or model spend.
+      - name: Offline unit checks
+        run: node runner/test/offline.js
+      - name: Session driver (chaos + warm resume)
+        run: node runner/test/codex-session.test.js
+      - name: App Server protocol contract (fake child process)
+        run: node runner/test/app-server-contract.test.js
+      - name: Run-viewer robustness (all shapes)
+        run: node runner/test/view-run.test.js
+      - name: Run-viewer live updates (no-reload sidecar channel)
+        run: node runner/test/view-run.live.test.js
+      - name: ASCII map renderer
+        run: node runner/test/map-run.test.js
+      - name: Run-summary report (cost / performance / reliability)
+        run: node runner/test/summarize-run.test.js
+      - name: GoalLint template (plan-mode smoke)
+        run: node runner/test/goal-lint.plan.test.js
+      - name: ClaimCheck template (plan-mode smoke)
+        run: node runner/test/claim-check.plan.test.js
+      - name: Interactive cockpit channel (serve)
+        run: node runner/test/serve.test.js
+      - name: Fleet supervision (status / answer / supervisor loop)
+        run: node runner/test/fleet.test.js
+      - name: Supervise shim (second fleet-protocol producer)
+        run: node runner/test/supervise.test.js
+      - name: compare-runs (longitudinal analytics)
+        run: node runner/test/compare-runs.test.js
+      - name: Every bundled workflow is --plan-safe
+        run: node runner/test/examples.plan.test.js

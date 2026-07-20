@@ -1,7 +1,5 @@
 # Intent-Causal Gate
 
-Date: 2026-07-01
-
 ## Purpose
 
 Intent-Causal Gate decides what the user is really trying to make true before planning, implementation, delegation, or tool-heavy execution.
@@ -15,12 +13,19 @@ It prevents the Agent from treating AgentOS, tools, files, workflows, subagents,
 - Classify user content as goal, means, constraint, evidence, emotion, or ambiguity before acting.
 - Treat named tools, files, workflows, AgentOS, subagents, tests, and reports as candidate means unless the user explicitly makes them the goal.
 - Identify `active_user_object`: what the user is trying to make true and what cannot be replaced by support artifacts.
-- Choose ask level by information value and risk: 0 ask, 1 ask, short grill, or full clarification.
-- Ask only questions whose answer would materially change route, risk, scope, validation, or user-visible success.
-- Do not let "ask less" become guessing; state explicit assumptions when proceeding without questions.
-- Discovery duty at high unknown density (unfamiliar domain, taste-based criteria the user can only recognize on sight, large unspecified areas, costly-to-reverse choices): actively initiate the fitting discovery move — teach the domain's blind spots, interview one route-changing question at a time, build 2-3 variants for the user to pick from, or request a reference. At high unknown density, guessing is not legitimized by stating assumptions; serve choices, not questionnaires — recognition beats recall.
+- Separate the user's goal from candidate means. A named tool, workflow, file, test, or implementation idea does not change the goal by itself.
+- Distinguish information retrieval from judgment formation. Judgment formation requires an observable trigger: user request, expressed uncertainty, conflicting goals, or a user-owned tradeoff blocking the next action. AI-user disagreement alone never starts or prolongs exploration.
+- Admit a question only when all six conditions hold: the answer is user-owned, unavailable from context or investigation, changes route or risk, has no safe reversible default, is necessary at the present stage, and blocks a named next top-level action.
+- Preserve an unexpressed user view before exposing the AI recommendation. Otherwise answer AI-first with materially different alternatives, an independent recommendation with its basis, and permission to reject all options.
+- Group questions by dependency, never by a fixed count. Ask sequentially when one answer can change or remove another; batch independent questions only when they jointly block the same next action. Recompute the remainder after a partial answer instead of demanding form completion.
+- When questioning stops, expose what was resolved, remaining uncertainty, why plausible remaining branches do not change the current step, assumptions, residual risk, and the condition that would reopen questioning.
+- A clear grounded authorization is an execution signal. A material goal change is a new current-goal version, not an inference from candidate means.
+- Do not let "ask less" become guessing: investigate available facts, teach blind spots, build variants, request a reference, or state a safe reversible default. At high unknown density, guessing is not legitimized by stating assumptions.
 - Run Proxy Risk Gate before promoting any tool/file/report/subagent result to mainline.
-- When the question is a judgment, evaluation, decision, recommendation, or one-sided framing, treat the user's framing itself as a possible bias source and run agent-os/review/anti-sycophancy-gate.md before answering.
+- Every substantive judgment already records an independent conclusion, basis,
+  and change condition. Use `agent-os/review/anti-sycophancy-gate.md` only when
+  the user explicitly requests adversarial framing review or when a contested,
+  high-risk frame needs tools beyond that normal judgment record.
 - Question shaping check before execution: if the question mixes emotional content with an analysis request, split them and handle separately; rewrite negation-style lookups ("which X are not Y") into positive form before searching; if the question's shape would systematically bias the answer, surface that to the user before proceeding.
 ```
 
@@ -68,29 +73,39 @@ ambiguity:
 
 ## Ask Gate
 
-Choose the lowest ask level that preserves the active user object.
+Ask only after every admission condition passes; otherwise investigate, choose a
+safe reversible default, propose a concrete route, or park the unknown.
 
 ```yaml
-ask_gate:
-  level: 0_ask | 1_ask | short_grill | full_clarification
-  reason:
-  questions:
-  assumptions_if_proceeding:
-  what_answer_would_change:
+question_decision:
+  mode: no_question | sequential | independent_batch
+  purpose: information_retrieval | judgment_formation
+  admission_conditions:
+    user_owned:
+    unavailable_from_context_or_investigation:
+    changes_route_or_risk:
+    no_safe_reversible_default:
+    present_stage_necessary:
+    blocked_top_level_action:
+  observable_exploration_trigger:
+  dependencies:
+  plausible_answer_branches:
+  presentation_order: user_first | ai_first
+  partial_answer_reassessment:
+  stop_support:
 ```
 
 ```text
-0 ask:
-  Use when the active user object is clear enough, the task is reversible or low risk, and missing details do not change route.
+no_question:
+  Use when any admission condition fails. The AI retains ordinary investigation,
+  synthesis, and safe reversible implementation choices.
 
-1 ask:
-  Use when one answer would materially change goal interpretation, deliverable shape, destructive action, source of truth, validation standard, or user-visible success.
+sequential:
+  Use when one answer can change, remove, or regenerate another question.
 
-short grill:
-  Use for fuzzy but important product, system, research, strategy, persona, or agent-behavior tasks where a few answers materially reduce wrong-route risk.
-
-full clarification:
-  Use only for high-stakes, long-lived, conflicting, irreversible, destructive, external, or ownership-ambiguous work.
+independent_batch:
+  Use only for mutually independent questions that jointly block the same next
+  top-level action. A partial answer triggers a fresh decision on the remainder.
 ```
 
 ## Proxy Risk Gate
@@ -127,4 +142,3 @@ side_route:
 discard:
   Does not serve the active object or increases drift risk.
 ```
-

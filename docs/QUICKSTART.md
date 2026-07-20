@@ -1,71 +1,36 @@
 # AgentOS Quickstart
 
-Get AgentOS running in a project in under a minute. Requirements: **Python 3** (for the
-installer and hooks) and, for the end-to-end check, **Node.js**.
-
-## 1. Get the installer
+## 1. Install into a project
 
 ```bash
-git clone https://github.com/zuoxu3310/AGENTOS.git
+python3 scripts/install-agentos.py /path/to/project
 ```
 
-## 2. Install the kernel into your project
+The installer adds the AgentOS kernel and runtime adapters. Existing project entry documents and configuration are merged. Existing Wiki and AgentOS state files are preserved.
+
+Use `--dry-run` to inspect the planned actions first:
 
 ```bash
-python3 AGENTOS/scripts/install-agentos.py /path/to/your/project
+python3 scripts/install-agentos.py --dry-run /path/to/project
 ```
 
-This copies the `agent-os/` kernel plus the runtime adapters into your project. It is
-non-destructive: existing `CLAUDE.md` and the root ledgers are merged (a marked AgentOS
-block is appended), and anything replaced is backed up under `.agentos-backups/`.
-
-## 3. Validate
+## 2. Validate the installed structure
 
 ```bash
-python3 AGENTOS/scripts/validate-agentos-install.py /path/to/your/project
-python3 /path/to/your/project/agent-os/tools/aos-lint.py
+python3 scripts/validate-agentos-install.py /path/to/project
+python3 /path/to/project/agent-os/tools/aos-lint.py
 ```
 
-`validate` should print `"status": "passed"` with `hook_wiring: wired` for both Claude
-and Codex. `aos-lint` should print `AgentOS structural lint PASS`.
+Validation checks installation structure, hook wiring, resident-rule projections, memory links, and document contracts. It does not prove that a runtime has trusted or invoked the hooks.
 
-## 4. Start a session
+## 3. Start a fresh runtime session
 
-Open the project in Claude Code or Codex. On the **next** session:
+Open a new Codex or Claude Code session in the target project. Review and trust changed project hooks when the runtime asks. Hook approval is runtime state and cannot be inferred from a successful file install.
 
-- The SessionStart hook injects the rules card and the current state digest.
-- Each turn must append a per-turn audit entry, or the Stop hook blocks the turn from
-  finishing.
-- The first session may ask you to approve the new project hooks — approve them to
-  enable enforcement.
+## 4. Confirm behavior
 
-## 5. Configure the two policy slots (optional)
+For a long task, confirm that the session restores only the current goal, finish conditions, open items, and next action. Normal read commands should run without semantic hook warnings. When the long task reaches its finish line, its final delivery should receive one reread; a short direct answer should remain single-pass.
 
-AgentOS ships persona-neutral. If you want them:
+## Updating an existing project
 
-- **Owner tag** — set the "Start every user-facing answer with …" line in `AGENTS.md`
-  and `.codex/agentos-local-rules.md`.
-- **Output language** — set the "Language and reader policy" block in `AGENTS.md`,
-  `.claude/rules/agentos-local-rules.md`, and `.codex/agentos-local-rules.md`.
-
-## Upgrading
-
-Re-run the installer against the same project. The kernel and adapters are synced;
-`AGENTS.md` is re-projected and the old copy is backed up; your **live state**
-(`agent-os/state/`) and **`wiki/`** are preserved untouched.
-
-## Disabling hooks temporarily
-
-```bash
-export AOS_HOOK_DISABLE=1   # hooks degrade to no-ops
-```
-
-## Troubleshooting
-
-- **`validate` shows `stop-hook-not-wired`** — the target's `.claude/settings.json` or
-  `.codex/hooks.json` did not merge the Stop hook. Re-run the installer; it JSON-merges
-  and never removes your existing settings.
-- **`aos-lint` FAIL: missing pattern** — a kernel file was edited so a required section
-  no longer matches. The failure names the exact file and pattern.
-- **A turn won't finish** — the Stop hook is doing its job: append the per-turn audit
-  entry to `agent-os/state/audit-log.md` and end your answer with the audit block.
+Run the same installer command again. Replaced files are backed up under `.agentos-backups/<timestamp>/`. Existing `agent-os/state/**` and `wiki/**` files are not overwritten.

@@ -1,40 +1,34 @@
 #!/usr/bin/env python3
-"""Stop hook: per-turn audit enforcer for Codex.
-
-Six-line entry checks (2026-07-06 gate hardening, ported from the Claude side):
-gates dispositions, verbatim intent quote (skipped when the runtime provides no
-transcript), restate line on long replies. All checks fail open on missing data.
-"""
+"""Stop: give a finished or blocked long task one delivery review."""
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import aos_common as aos
 
-MAX_BLOCKS = 2
-LONG_REPLY_CHARS = 1200
+
+def _truthy(value) -> bool:
+    return value is True or str(value).lower() in {"1", "true", "yes"}
 
 
-def last_assistant_text(transcript_path: str) -> str:
-    try:
-        lines = Path(transcript_path).read_text(encoding="utf-8", errors="replace").splitlines()
-    except Exception:
-        return ""
-    for line in reversed(lines[-400:]):
-        try:
-            obj = json.loads(line)
-        except Exception:
-            continue
-        if obj.get("type") not in ("assistant", "item.completed"):
-            continue
-        content = obj.get("message", {}).get("content") or obj.get("content") or []
-        if isinstance(content, str):
-            return content
-        texts = [p.get("text", "") for p in content if isinstance(p, dict) and p.get("type") == "text"]
-        if texts:
-            return "\n".join(texts)
-    return ""
+def continuation_prompt(active_work: dict, problems: list[str]) -> str:
+    state = json.dumps(active_work, ensure_ascii=False, separators=(",", ":"))
+    state_problems = "; ".join(problems) if problems else "none"
+    return (
+        f"{aos.STOP_CONTINUATION_MARKER}\n"
+        "<role>Recheck one long-task delivery before it reaches the user.</role>\n"
+        f"<context><active_work>{state}</active_work>"
+        f"<mechanical_state_error>{state_problems}</mechanical_state_error></context>\n"
+        "<instructions>Use the same main model. First confirm whether the task is done or "
+        "blocked from the recorded conditions and evidence. Then rewrite the delivery in the "
+        "simplest natural language that still tells the user: what happened, what they now "
+        "have, what remains, and what they need to decide or do. Remove unnecessary jargon, "
+        "translation-like phrasing, internal mechanism names, and work-log detail. Do not hide "
+        "a boundary, risk, missing evidence, or unfinished item. If mechanical_state_error is "
+        "not none, fix the state file before returning.</instructions>\n"
+        "<output_format>Return only the normal user-facing answer.</output_format>\n"
+        "<question>Recheck and deliver the result now.</question>"
+    )
 
 
 def main() -> int:
@@ -42,87 +36,26 @@ def main() -> int:
     if aos.disabled():
         return 0
     root = aos.project_root(data)
-    log = aos.audit_log_path(root)
-    if not log.is_file():
+    if not (root / "agent-os").is_dir():
         return 0
-
-    text = log.read_text(encoding="utf-8")
-    session_id = str(data.get("session_id") or data.get("conversation_id") or "")
-    sid = aos.sid_of(session_id)
-    state = aos.load_state(root, session_id)
-    baseline = state.get("last_n")
-    mine = aos.entries_for_sid(text, sid)
-    newest = mine[-1] if mine else 0
-    if baseline is None:
-        state.update({"last_n": newest, "retries": 0})
-        aos.save_state(root, session_id, state)
-        aos.log_compliance(root, session_id, "ok", f"no-baseline #{newest}({sid})")
+    module, path, active_work, problems = aos.active_work_state(root, "codex", data)
+    if not active_work or active_work.get("report_state") != "pending":
         return 0
-    retries = int(state.get("retries", 0))
-
-    problems: list[str] = []
-    if newest <= baseline:
-        problems.append(
-            f"missing this turn's audit entry: expected a new `## <n> ({sid}) — …` entry for this session,"
-            f" its newest is still #{newest if newest else '(none)'}"
-        )
-    else:
-        # Cross-session number collisions are legal (sessions share one log);
-        # within a session, append-only means numbers strictly increase.
-        if any(b <= a for a, b in zip(mine, mine[1:])):
-            problems.append(
-                f"this session's entry numbers must be strictly increasing in file order (got {mine};"
-                " append-only — take a fresh higher number, never renumber or edit past entries)"
-            )
-        missing = aos.entry_missing_fields(text, newest, sid)
-        if missing:
-            problems.append(f"entry #{newest} ({sid}) missing fields: {', '.join(missing)}")
-        if not missing:
-            block = aos.entry_block(text, newest, sid)
-            gp = aos.gates_line_problem(block)
-            if gp:
-                problems.append(gp)
-            user_text = aos.last_user_text(data.get("transcript_path", ""))
-            if user_text and not aos.is_notification_turn(user_text):
-                ip = aos.intent_quote_problem(block, user_text)
-                if ip:
-                    problems.append(ip + " (intent-gate trace: `- intent: quote「<verbatim substring of the user message>」→ goal / deliverable / not-doing`)")
-            import re as _re
-            answer_now = last_assistant_text(data.get("transcript_path", ""))
-            if len(answer_now) >= LONG_REPLY_CHARS and not _re.search(r"^\s*- restate:", block, _re.MULTILINE):
-                problems.append(
-                    f"long deliverable turn (>= {LONG_REPLY_CHARS} chars) lacks a `- restate:` line"
-                    " (zero-context restate test: hand ONLY the reply text to a cheap fresh reader)"
-                )
-
-    visible_note = ""
-    if not problems:
-        answer = last_assistant_text(data.get("transcript_path", ""))
-        if answer and (f"#{newest}" not in answer and "per_turn_audit" not in answer):
-            visible_note = " visible-block-unconfirmed"
-
-    if not problems:
-        state.update({"last_n": newest, "retries": 0})
-        aos.save_state(root, session_id, state)
-        aos.log_compliance(root, session_id, "ok" if retries == 0 else "forced_ok", f"#{newest}({sid}){visible_note}")
+    if not _truthy(data.get("stop_hook_active")):
+        aos.emit_stop_block(continuation_prompt(active_work, problems))
         return 0
-
-    if retries >= MAX_BLOCKS:
-        state["retries"] = 0
-        aos.save_state(root, session_id, state)
-        aos.log_compliance(root, session_id, "missed", "; ".join(problems))
+    if problems:
+        print(json.dumps({
+            "systemMessage": "AgentOS did not mark this long-task report delivered because "
+            "its mechanical state is invalid: " + "; ".join(problems)
+        }, ensure_ascii=False))
         return 0
-
-    state["retries"] = retries + 1
-    aos.save_state(root, session_id, state)
-    next_number = aos.max_entry(text) + 1
-    aos.emit_block_decision(
-        "AgentOS per-turn audit failed: " + "; ".join(problems)
-        + f". APPEND (never edit past entries) `## {next_number} ({sid}) — <one-line label>`"
-        + " in agent-os/state/audit-log.md (six lines: - object: / - contract: / - action+evidence: / - status: /"
-        + " - gates: per-gate dispositions / - intent: 「verbatim user quote」),"
-        + " and end the visible answer with the audit block. Rule: agent-os/review/per-turn-audit-gate.md"
-    )
+    delivered_problems = module.mark_delivered(path)
+    if delivered_problems:
+        print(json.dumps({
+            "systemMessage": "AgentOS could not mark the long-task report delivered: "
+            + "; ".join(delivered_problems)
+        }, ensure_ascii=False))
     return 0
 
 

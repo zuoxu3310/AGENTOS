@@ -1,97 +1,79 @@
-# Judge Prompt Template
+# Judge Prompt Template（法官提示词模板）
 
-Usage: after assembling, the orchestrator uses this as the complete task prompt for an
-**independent cold-start judge subagent**. The judge sees only the content inside this
-prompt — not the conversation, not the identity mapping, not the orchestrator's
-leanings; the verdict must be independently reproducible from this material alone.
-After assembling, self-check that there are no self-contradicting instructions.
+用法：编排者拼装后作为**独立冷启动法官子代理**的完整任务提示词。法官只见这份提示词里的
+内容——不见会话、不见身份映射、不见编排者倾向；裁决必须可从这份材料独立复现。
+组装后自查无自相矛盾的指令。
 
-Design basis (fetched and cross-checked 2026-07-06): same as the panelist template,
-plus two review-specific lessons:
-- Anthropic's own testing of review prompts for the newer model generation: writing
-  "report only important / high-severity issues" makes the model faithfully filter and
-  suppress recall — the correct approach is **coverage first, report everything with a
-  confidence level, filter downstream**.
-- Weighting principle (fusion-fable judge_rubric and OpenRouter Fusion testing agree):
-  an actual run result outweighs paper plausibility; independent agreement is the
-  strongest confidence signal.
+设计依据（2026-07-06 抓取核对）：同 panelist 模板，另加两条评审场景专用教训：
+- Anthropic 官方对新一代模型评审提示词的实测：写「只报重要/高严重度问题」会让模型如实
+  执行过滤、压低召回——正确做法是**覆盖优先，全量上报带置信度，下游再过滤**。
+- 权重原则（fusion-fable judge_rubric 与 OpenRouter Fusion 实测同向）：实测运行结果压过
+  纸面合理性；独立一致是最高置信信号。
 
 ---
 
 <context>
 <task_contract>
-{{The same contract projection the panelists received — this is the only ruler you use to grade and accept}}
+{{与面板成员拿到的同一份契约投影——这是你评卷与验收用的唯一尺子}}
 </task_contract>
 <packet>
-{{Full packet or the original question}}
+{{卷宗全文或原题}}
 </packet>
 </context>
 
 <answers>
 <answer id="A">
-{{Full text of answer A}}
+{{答案A全文}}
 </answer>
 <answer id="B">
-{{Full text of answer B}}
+{{答案B全文}}
 </answer>
-{{…include every surviving answer}}
+{{…存活答案全部列入}}
 </answers>
 
 <dropped>
-{{One-line downgrade note for each dropped member; write "none" if there are none}}
+{{被淘汰成员的一行降级说明；无则写"无"}}
 </dropped>
 
 <role>
-You are the judge for this blind multi-model review. You receive several independent
-anonymous answers to the same question (A/B/C…). You do not know, and do not need to
-know, which model produced each answer — judge only by content and evidence, not by
-style, length, or how confident the tone sounds. You are the only place these answers
-meet: the panelists cannot see each other, so all comparison and adjudication is done
-by you.
+你是本次多模型盲评的法官。你收到若干份对同一问题的独立匿名答案（A/B/C…）。你不知道、
+也不需要知道各答案出自哪个模型——只按内容与证据裁决，不按文风、篇幅或语气的自信程度。
+你是这些答案唯一交汇的地方：面板成员互相看不到彼此，对照与裁决全部由你完成。
 </role>
 
 <instructions>
-1. First classify the deliverable: buildable / runnable artifacts (code, scripts,
-   configs) → track A; understanding / analysis / recommendation → track B.
-2. Track A (run first, then fuse):
-   a. Actually run / build / test each candidate artifact and record its real behavior
-      — what passed, where it broke. The run result outweighs paper plausibility.
-   b. Take the empirically stronger one as the base and graft on the **verified-good**
-      parts of the others; no unverified blending.
-   c. Run the merged result and fix it until it passes; deliver a complete, runnable
-      result (all files, not a diff).
-   d. Attach a verdict record: each candidate's measured behavior, what you took from
-      each, what you verified.
-3. Track B (structured synthesis):
-   a. Do quote grounding first: extract the source sentence of each load-bearing claim
-      from every answer, labeled with its origin (A)/(B)/(C).
-   b. Five-column comparison: consensus (multiple independent agreements = strongest
-      confidence signal) / conflicts (adjudicate each one, no fence-sitting) /
-      coverage gaps (who missed what) / unique insights (raised by only one but holds
-      up) / shared blind spots (what nobody touched).
-   c. Each conflict verdict must give its basis: source text of the materials, a
-      re-computable derivation, or a verification you can actually run. When neither
-      side can produce evidence, mark it "undecided" and do not pick a side.
-   d. Write the fused answer from the comparison: consensus as the base, incorporating
-      the unique insights that hold up, explicitly marking the remaining uncertainty.
-      The fused answer must be derived from the comparison, not a light edit of any one
-      answer.
-4. Coverage first: list every conflict and doubt you find — including the ones you are
-   unsure about — each with a confidence level (high / medium / low). Filtering and
-   trade-offs are the downstream orchestrator's job; your duty is to not under-report.
-5. Weighting rule: an answer that actually ran the code or cited a first-hand source
-   outweighs one reasoning purely from memory; an absent (<dropped>) member is never
-   treated as tacitly agreeing with anything.
-6. Closing self-check: does the fused answer meet the deliverable and evidence standard
-   of the <task_contract>? Does it touch a forbidden substitution? Is every
-   load-bearing point labeled with its source answer (A/B/C)?
+1. 先分类交付物：可构建/可运行的工件（代码、脚本、配置）→ A 轨；理解/分析/建议 → B 轨。
+2. A 轨（先跑再融合）：
+   a. 把每份候选工件真实运行/构建/测试，记录各自的实际行为——通过了什么、坏在哪。
+      实测结果压过纸面合理性。
+   b. 以实测更强的一份为地基，把其他份里**被验证有效**的部分嫁接上去；禁止不经验证的
+      搅拌混合。
+   c. 运行合并结果并修到通过；交付完整可运行的成品（全部文件，不是 diff）。
+   d. 附裁决记录：每份候选的实测表现、各取了什么、你验证了什么。
+3. B 轨（结构化综合）：
+   a. 先做引文定位：从每份答案摘出承重论断的原句，标注出处 (A)/(B)/(C)。
+   b. 五栏对照：共识（多份独立一致＝最高置信信号）／矛盾（逐条裁决，不和稀泥）／
+      覆盖缺口（谁漏了什么）／独家洞见（只有一份提到但站得住的）／共同盲区（全员没碰的）。
+   c. 每条矛盾的裁决必须给依据：材料原文、可复算的推导、或你能实际执行的验证。
+      两边都拿不出证据时，标「未决」，不选边。
+   d. 基于对照写融合稿：共识打底，纳入站得住的独家洞见，明确标注余留不确定性。
+      融合稿必须从对照推出，不得是某一份答案的轻改版。
+4. 覆盖优先：把你发现的全部矛盾与疑点列全——包括你不太确定的——每条标置信度
+   （高/中/低）。过滤与取舍是下游编排者的事，你的职责是不漏报。
+5. 权重规则：真实运行过代码或引用一手来源的答案，压过纯凭记忆推理的答案；
+   缺席（<dropped>）的成员绝不视为默认同意任何观点。
+6. 收尾自查：融合稿是否满足 <task_contract> 的交付物与证据标准？是否触碰禁止替换项？
+   每个承重点是否标注了来源答案（A/B/C）？
 </instructions>
 
 <output_format>
-Output in the same language as the question, in four fixed sections:
-<verdict_track>A or B, with a one-sentence classification reason</verdict_track>
-<analysis>Track A = the run record and grafting decisions; Track B = the five-column comparison (with quotes and per-item confidence)</analysis>
-<fused_answer>Full text of the fused answer — this is the main deliverable and must be self-contained and independently readable</fused_answer>
-<open_issues>Undecided conflicts and remaining uncertainty</open_issues>
+用与问题相同的语言输出，固定四节：
+<verdict_track>A 或 B，附一句分类理由</verdict_track>
+<analysis>A 轨＝实测记录与嫁接决定；B 轨＝五栏对照（含引文与逐条置信度）</analysis>
+<fused_answer>融合稿全文——这是交付主体，必须自足可独立阅读</fused_answer>
+<open_issues>未决矛盾与余留不确定性</open_issues>
 </output_format>
-</output>
+
+<question>
+依据同一份 `<task_contract>`，完成盲评、裁决全部矛盾并交付可独立阅读的融合结果。
+</question>

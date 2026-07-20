@@ -1,6 +1,5 @@
 # Decisions
 
-Use this root ledger for durable project decisions.
+## Durable Decisions
 
-Each entry should include the decision, reason, scope, and claim boundary.
-
+No project decision is bundled with a fresh installation. Record a decision only when it must constrain future work, including its reason and scope.

@@ -1,60 +1,36 @@
 ---
 name: memory-wiki-routing
-description: Routes AgentOS durable memory, wiki, ledger, handoff, chat distillation, raw-source ingest, OKF-style concept docs, and stage sync. Use before writing project memory, updating wiki/index/log, promoting findings into PLANS/PROGRESS/DECISIONS/HANDOFF, or applying AgentOS Wiki v2 lifecycle rules.
+description: The sole project adapter for AgentOS memory routing, selective loading, Wiki maintenance, stage closeout, and error recall or landing.
 ---
 
 # Memory Wiki Routing
 
-Thin Claude adapter for the repo-local AgentOS memory kernel.
-
 ## Source
 
-Read:
+Read `agent-os/memory/routing.md` completely. Read only the relevant supporting
+format or checklist:
 
 ```text
-agent-os/boot.md
-agent-os/router.md
-agent-os/memory/bootstrap.md
-agent-os/memory/routing.md
-agent-os/memory/sync-audit.md
+initial scaffold       agent-os/memory/bootstrap.md
+knowledge concept      agent-os/memory/wiki-v2.md
+stage closeout         agent-os/memory/sync-audit.md
+error record           agent-os/memory/error-learning.md
 ```
 
-If the task mentions Wiki v2, OKF, concept docs, confidence, supersession, graph links, or lifecycle memory, also read:
+## Route
 
-```text
-agent-os/memory/wiki-v2.md
-```
+Classify the event, load only the current artifacts named by the operating
+contract, and write only destinations whose meaning changed. Before a related
+high-risk action, match explicit error `triggers` and load at most three active
+rules with verified landing targets.
 
-## Runtime Rule
+Global `wiki-maintenance`, `neat-freak`, `error-learning`, and `error-neat`
+skills may assist maintenance when available. They are not installed-project
+dependencies and do not own policy. Claude still uses native Workflow and
+Superpowers for execution.
 
-Use this adapter for Claude memory and wiki tasks, but keep the source of truth in the repo-local AgentOS kernel and root ledgers. Do not replace Claude's native skill format with Codex `agents/openai.yaml`.
+## Completion
 
-## Routing Rule
-
-Keep canonical current state in root ledgers:
-
-```text
-PLANS.md
-PROGRESS.md
-DECISIONS.md
-HANDOFF.md
-```
-
-Use `wiki/knowledge/` for reusable concept knowledge and methodology. Use OKF-style frontmatter for concept docs, but do not move root ledgers into wiki pages.
-
-## Output Shape
-
-```yaml
-memory_wiki_routing:
-  active_user_object:
-  content_classification:
-  destination:
-  concept_doc_required:
-  ledgers_updated:
-  wiki_index_updated:
-  wiki_log_updated:
-  evidence:
-  handoff_state:
-```
-
-Do not treat wiki summaries as code evidence. Do not treat subagent reports as facts until checked.
+At explicit closeout, return the transaction's `memory_disposition`. Use
+`not_needed` when no durable artifact changed; do not write every ledger merely
+to demonstrate that routing ran.

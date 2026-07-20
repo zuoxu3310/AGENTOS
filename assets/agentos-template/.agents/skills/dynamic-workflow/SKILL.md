@@ -1,62 +1,99 @@
 ---
 name: dynamic-workflow
-description: Runs AgentOS Dynamic Workflow for script-owned, multi-worker, multi-thread, recoverable, or auditable workflow execution. Use when a task asks for Codex worker threads, Claude Dynamic Workflows, Agent Teams, Three-Agent Squad, state boards, worker visibility, worker recovery, or promotion-gated synthesis.
+description: Codex-only AgentOS router and runtime adapter. For every non-small Codex task, decide NO_DELEGATION or compile the smallest failure-mode-driven workflow and execute delegated work only through the vendored Dynamic Workflow runner. Use for independent branches, specialist workers, pipelines, races, warm session steering, human gates, recovery, fleets, or independent review.
 ---
 
 # Dynamic Workflow
 
-Thin Codex adapter for the repo-local AgentOS kernel.
+Use this Skill because AgentOS needs one consistent Codex orchestration path.
+Claude keeps its native Workflow and Superpowers.
 
 ## Source
 
-Read:
+Read completely:
 
 ```text
 agent-os/boot.md
 agent-os/router.md
-agent-os/workflows/dynamic-workflow.md
+agent-os/adapters/codex-workflow.md
+agent-os/review/prompt-craft-gate.md
 agent-os/review/route-keeper-promotion-gate.md
 agent-os/review/evidence-to-claim-gate.md
 ```
 
-## Trigger
-
-Use when the active task needs independently recoverable workers, runtime thread evidence, state-board execution, workflow visibility classification, Three-Agent Squad, or final synthesis from worker outputs.
-
-## Codex Runtime Rule
-
-Prefer Codex app thread tools for user-visible workers:
+For authoring or operating a delegated run, read the relevant vendored source:
 
 ```text
-list_projects -> create_thread -> list_threads -> read_thread -> navigate_to_codex_page
+vendor/claude-dynamic-workflows-codex/references/authoring.md
+vendor/claude-dynamic-workflows-codex/references/runner-readme.md
+vendor/claude-dynamic-workflows-codex/references/fleet-protocol.md
+vendor/claude-dynamic-workflows-codex/examples/
 ```
 
-Use `codex app-server --stdio` only for background adapter probes or when user-visible auditability is not required. App-server readable threads do not prove Desktop visibility.
+## Trigger
 
-## Output Shape
+Route every non-small Codex task. Return exactly one of:
+
+- `NO_DELEGATION`: the main conversation completes the work directly.
+- `delegated`: name the failure mode, compile the smallest useful harness, and
+  execute it through the vendored runner.
+
+`NO_DELEGATION` is not a workflow backend. Do not use native collaboration
+workers as a second delegated route. Do not create a workflow just because a
+task is large.
+
+## Delegated Runtime Rule
+
+The sole delegated execution command is:
+
+```bash
+node vendor/claude-dynamic-workflows-codex/runner/bin/run-workflow.js <script.js> [options]
+```
+
+Author reusable scripts under `workflows/`. Use the full upstream DSL when the
+chosen harness needs it: `agent`, `parallel`, `pipeline`, `phase`, `workflow`,
+`human`, `budget`, sessionful `agent.start` / `agent.waitAny` /
+`session.steer`, journaling and resume, fleet supervision, maps, summaries, TUI,
+or GUI.
+
+Run `--plan` before any expensive or adaptive workflow. Apply the AgentOS
+cheapest-capable model policy per call; do not inherit the upstream Claude
+wrapper's blanket `--frontier` default. Use a read-only sandbox unless a worker
+must write, keep one writer per artifact, and obtain authority before material
+token spend, destructive actions, or product-risk choices.
+
+Before `--resume`, compare the recorded workspace fingerprint. Start fresh if
+relevant inputs changed or safe comparison is unavailable.
+
+Use app thread creation separately only when the user explicitly asks for a
+user-visible Codex task. Runner/app-server readability does not prove Codex
+Desktop visibility.
+
+## Required Output Shape
 
 ```yaml
 dynamic_workflow:
   active_user_object:
   contract:
-  runner_or_thread_route:
-  state_board_path:
-  workers:
-    - role:
-      threadId:
-      title:
-      hostId:
-      cwd:
-      source:
-      visibility:
-        tool_readable:
-        listable:
-        user_visible:
-        auditable:
-      result_ref:
+  routing_decision: NO_DELEGATION | delegated
+  routing_reason:
+  failure_mode:
+  harness_shape: direct | fan_out_and_synthesize | staged_pipeline | adversarial_verification | loop_until_dry | race_and_cancel | sessionful_steering | fleet | mixed
+  execution_engine: vendored_dynamic_workflow_runner
+  script_path:
+  journal_path:
+  run_id:
+  workspace_fingerprint:
+  involvement_mode: hands_off | checkpointed | interactive
+  model_policy:
+  budget_envelope:
+  write_owners:
+  result_ref:
   promotion_gate:
   final_synthesis:
+  resume_action:
   evidence_limits:
 ```
 
-Worker outputs remain support artifacts until verified against source paths, command output, files, or user-visible Codex thread evidence.
+Runner outputs remain support artifacts until the main conversation verifies
+them against source paths, commands, files, tests, or runtime evidence.

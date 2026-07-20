@@ -2,12 +2,10 @@ cff-version: 1.2.0
 message: "If you use AgentOS in research or a product, please cite it as below."
 title: "AgentOS: a repo-local operating system for AI coding agents"
 abstract: >-
-  AgentOS is a runtime-agnostic governance kernel for AI coding agents. It installs a
-  canonical agent-os/ directory of rules, review gates, workflows, and durable memory
-  into any project, plus thin adapters that activate those rules inside Claude Code,
-  OpenAI Codex, and other AGENTS.md-aware runtimes. Its signature mechanism is a
-  hook-enforced per-turn audit trail: a turn cannot finish until the agent has logged a
-  well-formed, uniquely-numbered audit entry.
+  AgentOS is a repo-local operating layer for AI coding agents. It combines explicit
+  task finish conditions, evidence-aware completion, selective project memory, and
+  runtime adapters for Claude Code and OpenAI Codex. The main model performs semantic
+  judgment while hooks restore attention and enforce deterministic runtime boundaries.
 type: software
 authors:
   - name: "zuoxu3310"
@@ -15,18 +13,14 @@ authors:
 repository-code: "https://github.com/zuoxu3310/AGENTOS"
 url: "https://github.com/zuoxu3310/AGENTOS"
 license: Apache-2.0
-version: "1.0.0"
-date-released: "2026-07-06"
+version: "2.0.0"
+date-released: "2026-07-20"
 keywords:
   - ai-agents
   - ai-coding-assistant
-  - agent-framework
   - agent-governance
   - claude-code
   - codex
-  - llm
-  - guardrails
-  - prompt-engineering
-  - agents-md
+  - task-contracts
+  - project-memory
   - multi-agent
-  - developer-tools

@@ -1,7 +1,5 @@
 # Evidence-to-Claim Gate
 
-Date: 2026-07-01
-
 ## Purpose
 
 Evidence-to-Claim Gate controls what Agents may claim in user-facing answers, final reports, intermediate summaries, handoff notes, and durable memory writes.
@@ -23,6 +21,9 @@ Use it when writing:
 ```
 
 Report Gate is not a separate layer and must not duplicate Evidence-to-Claim Gate.
+It controls whether a claim may be said, not the prose style, length, or amount
+of technical detail. User-facing information selection belongs to the Task
+Contract and Agent Execution Lifecycle.
 
 ## Core Rules
 
@@ -39,6 +40,19 @@ Report Gate is not a separate layer and must not duplicate Evidence-to-Claim Gat
 - Headline conclusions must state an external re-check path (re-run the command, a second independent source, or cross-agent review). Internal self-consistency of the reasoning text is never sufficient evidence: a coherent chain built on selectively gathered true facts stays coherent and still misleads.
 - Another model's agreement on a judgment-type conclusion counts as `supported` at most, never `strongly_supported` by itself: models converge on strategy-optimal answers, so cross-model agreement can be shared bias rather than independent confirmation.
 - Mark every number or factual claim as verified (source re-checked) or unverified (quoted without checking). Unverified numbers must carry the label.
+- Fact-source layering for past user rulings and strikes: the fact source is the
+  verbatim transcript (raw chat / voice corpus). Ledgers (DECISIONS, PROGRESS,
+  HANDOFF, audit log) are disposition records and systematically soften strikes —
+  cite them only AS disposition records, never as the strike itself. On conflict,
+  the transcript wins. Quote by copy-paste, never retype (punctuation drifts).
+- Judgment support preserves its type. A fact carries verified/unverified state
+  and an anchor when verified; a prediction carries uncertainty and conditions;
+  a value judgment carries the governing principle and a reasonable opposing
+  principle. One support type may not borrow another type's certainty.
+- Separate deterministic, runtime, model-sample, and live-task evidence. Each
+  proves only its own layer.
+- A proposed agency transaction and self-reported gate findings are claims to
+  check, not evidence of truth. Another model's verdict remains sampled support.
 ```
 
 ## Micro Claim Gate
@@ -48,6 +62,8 @@ claim_gate_micro:
   claim:
   claim_type:
   evidence_source:
+  evidence_layer: deterministic | runtime | model_sample | live
+  support_type: fact | prediction | value_principle | not_applicable
   evidence_strength:
   allowed_wording:
 ```
@@ -130,4 +146,3 @@ output_review:
   claims_removed_or_downgraded:
   remaining_uncertainty:
 ```
-

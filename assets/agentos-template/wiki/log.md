@@ -1,4 +1,6 @@
-# Wiki Log
+# Wiki Lifecycle Log
 
-Record durable wiki changes here when they matter for future agents.
+Only creation, promotion, supersession, archive, and migration events belong here.
 
+| Date | Operation | Source | Updated artifacts | Evidence |
+|---|---|---|---|---|

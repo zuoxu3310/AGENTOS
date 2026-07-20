@@ -1,6 +1,5 @@
 # Progress
 
-Use this root ledger for completed work, verification evidence, and claim boundaries.
+## Verified Milestones
 
-Record what changed, what command or file proves it, and what the evidence does not prove.
-
+No project milestone is bundled with a fresh installation. Record only completed results with evidence and claim boundaries.

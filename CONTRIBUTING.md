@@ -1,51 +1,29 @@
 # Contributing to AgentOS
 
-Thanks for your interest in improving AgentOS. This project values small, verifiable
-changes and honest scope.
+AgentOS values small, verifiable changes and honest claim boundaries.
 
 ## Ground rules
 
-- **The kernel is `agent-os/`.** Rules live there once. `AGENTS.md`, `CLAUDE.md`,
-  `.claude/`, `.codex/`, and `.agents/` are adapters — they point back to the kernel and
-  must not copy rule bodies into a competing kernel.
-- **Keep it dependency-free.** The installer and hooks are Python 3 standard library
-  only; the pressure test is Node standard library only. Do not add third-party
-  dependencies.
-- **Non-destructive.** Anything that touches a user's project must merge or back up, never
-  silently overwrite.
-- **Honest scope.** Enforce mechanically what can be proven (existence, format,
-  structure); route the rest as gates. Do not describe a routed gate as a hard guarantee.
+- `agent-os/` is the kernel. Runtime files and skills are adapters, not competing rule sources.
+- The installer and hooks use the Python 3 standard library. The pressure test uses the Node standard library.
+- Installation must preserve user-owned entry content, configuration, Wiki files, and runtime state.
+- The main model and skills own semantic judgment. Hooks may restore attention or enforce deterministic facts; do not add command-text intent guessing or answer scoring.
+- A test proves only the behavior it observes. Runtime activation claims require a fresh trusted session.
 
-## Before you open a PR
-
-Run the three verification checks and make sure they pass:
+## Required checks
 
 ```bash
-# 1. Kernel structure
+python3 scripts/test_installer_behavior.py
+python3 scripts/validate-agentos-install.py assets/agentos-template
 python3 assets/agentos-template/agent-os/tools/aos-lint.py
-
-# 2. Install into a scratch dir, then validate it
-python3 scripts/install-agentos.py /tmp/aos-contrib-check
-python3 scripts/validate-agentos-install.py /tmp/aos-contrib-check
-
-# 3. End-to-end (runs the real Codex SessionStart hook + gate checks)
-( cd /tmp/aos-contrib-check && node work/e2e-pressure-tests/agentos-e2e-pressure-test.mjs )
+cd assets/agentos-template
+python3 -m unittest discover -s tests/unit -p 'test_*.py'
+python3 -m unittest discover -s tests/integration -p 'test_*.py'
+python3 -m unittest discover -s tests/scenarios -p 'test_*.py'
 ```
 
-CI runs the same checks on every push and pull request.
-
-## If you edit the kernel
-
-- `aos-lint.py` asserts required files, directories, and section patterns. If you rename
-  a file or a section, update `aos-lint.py`'s `REQUIRED_FILES` / `PATTERNS` in the same
-  change, or lint will fail.
-- Some invariants are asserted in more than one place (for example, the greeting-rule
-  text is checked by both `aos-lint.py` and the E2E pressure test). Move coupled
-  assertions together.
-- After editing any `agent-os/**` file, re-run `aos-lint.py`.
+If you change an installation contract, test fresh install, brownfield merge, reinstall, invalid configuration preservation, and validator rejection. If you change a hook response, test both runtime adapters and the real runtime when available.
 
 ## Reporting issues
 
-Open a GitHub issue describing what you expected, what happened, and the runtime (Claude
-Code / Codex / other) and OS you were on. For anything security-sensitive, see
-[SECURITY.md](./SECURITY.md).
+Describe the expected result, observed result, runtime, operating system, and the smallest reproduction. Use [SECURITY.md](SECURITY.md) for security-sensitive reports.

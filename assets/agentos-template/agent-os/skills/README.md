@@ -1,7 +1,5 @@
 # Agent OS Skills
 
-Date: 2026-07-01
-
 Reusable Agent OS methods can live here.
 
 This directory is not a native runtime skill directory by itself.

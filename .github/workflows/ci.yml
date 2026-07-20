@@ -8,7 +8,7 @@ on:
 
 jobs:
   verify:
-    name: lint · install · validate · e2e
+    name: package · tests · install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,24 +18,23 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
+      - name: Validate clean template
+        run: |
+          python3 scripts/validate-agentos-install.py assets/agentos-template
+          python3 assets/agentos-template/agent-os/tools/aos-lint.py
 
-      - name: Structural lint (kernel template)
-        run: python3 assets/agentos-template/agent-os/tools/aos-lint.py
+      - name: Run template tests
+        working-directory: assets/agentos-template
+        run: |
+          python3 -m unittest discover -s tests/unit -p 'test_*.py'
+          python3 -m unittest discover -s tests/integration -p 'test_*.py'
+          python3 -m unittest discover -s tests/scenarios -p 'test_*.py'
 
-      - name: Install into a scratch project
-        run: python3 scripts/install-agentos.py "$RUNNER_TEMP/aos-target"
+      - name: Run installer behavior suite
+        run: python3 scripts/test_installer_behavior.py
 
-      - name: Validate the install
-        run: python3 scripts/validate-agentos-install.py "$RUNNER_TEMP/aos-target"
-
-      - name: End-to-end pressure test
-        working-directory: ${{ runner.temp }}/aos-target
-        run: node work/e2e-pressure-tests/agentos-e2e-pressure-test.mjs
-
-      - name: Lint the installed kernel
-        working-directory: ${{ runner.temp }}/aos-target
-        run: python3 agent-os/tools/aos-lint.py
+      - name: Install and validate a scratch project
+        run: |
+          python3 scripts/install-agentos.py "$RUNNER_TEMP/aos-target"
+          python3 scripts/validate-agentos-install.py "$RUNNER_TEMP/aos-target"
+          python3 "$RUNNER_TEMP/aos-target/agent-os/tools/aos-lint.py"

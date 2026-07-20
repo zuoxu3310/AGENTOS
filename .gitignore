@@ -1,22 +1,17 @@
-# --- Python bytecode ---
+# Python bytecode
 __pycache__/
 *.py[cod]
 
-# --- OS / editor cruft ---
+# OS and editor files
 .DS_Store
 *.swp
 .idea/
 .vscode/
 
-# --- AgentOS runtime artifacts (generated; never part of the installer repo) ---
-# Install-time backups written into a target project.
+# Runtime and installation artifacts
 .agentos-backups/
-# Per-run outputs of the E2E pressure test.
+.agentos-install-manifest.json
 **/e2e-pressure-tests/runs/
-# Hook per-session state and the script-owned compliance metrics log.
+**/agent-os/state/active-work/
 **/.claude/hooks/.state/
 **/.codex/hooks/.state/
-**/agent-os/state/compliance-log.tsv
-
-# NOTE: the seeded template files agent-os/state/audit-log.md and
-# agent-os/state/current.md ARE shipped and must stay tracked.

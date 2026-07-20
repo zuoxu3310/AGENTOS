@@ -1,0 +1,370 @@
+schema_version = 1
+governed_roots = [
+  "AGENTS.md",
+  "CLAUDE.md",
+  "PLANS.md",
+  "PROGRESS.md",
+  "DECISIONS.md",
+  "HANDOFF.md",
+  "agent-os/**/*.md",
+  ".agents/skills/**/*.md",
+  ".claude/skills/**/*.md",
+  "wiki/**/*.md",
+  "outputs/**/*.md",
+]
+excluded_roots = ["vendor/**", "work/**", "backups/**"]
+
+[[artifact]]
+id = "runtime_entry"
+paths = ["AGENTS.md", "CLAUDE.md", "agent-os/rules-card.md"]
+canonical_owner = "agent-os/rules-card.md"
+consumer = ["codex", "claude"]
+load_mode = "native_startup_projection"
+required_structure = ["(?m)^# "]
+forbidden_content = ["(?m)^Date:"]
+projections = ["AGENTS.md#AGENTOS_RESIDENT_RULES", ".claude/rules/agentos-local-rules.md"]
+verification = ["managed_block_exact", "claude_projection_exact"]
+
+[[artifact]]
+id = "boot"
+paths = ["agent-os/boot.md"]
+canonical_owner = "agent-os/boot.md"
+consumer = ["codex", "claude"]
+load_mode = "startup_on_demand"
+required_structure = ["(?m)^# AgentOS Boot$", "(?m)^## Startup Sequence$"]
+forbidden_content = ["(?m)^Date:"]
+projections = []
+verification = ["structure", "links_resolve"]
+
+[[artifact]]
+id = "router"
+paths = ["agent-os/router.md"]
+canonical_owner = "agent-os/router.md"
+consumer = ["codex", "claude"]
+load_mode = "non_small_task_route"
+required_structure = ["(?m)^# AgentOS Router$", "(?m)^## Route Table$"]
+forbidden_content = ["(?m)^Date:"]
+projections = []
+verification = ["structure", "links_resolve"]
+
+[[artifact]]
+id = "review_gate"
+paths = ["agent-os/review/*.md"]
+canonical_owner = "matched_file"
+consumer = ["router", "runtime_skills"]
+load_mode = "condition_triggered"
+required_structure = ["(?m)^# ", "(?m)^## Purpose$"]
+forbidden_content = ["(?m)^Date:"]
+projections = []
+verification = ["structure", "prompt_xml_when_applicable"]
+
+[[artifact]]
+id = "workflow"
+paths = ["agent-os/workflows/*.md"]
+canonical_owner = "matched_file"
+consumer = ["router", "runtime_adapters"]
+load_mode = "condition_triggered"
+required_structure = ["(?m)^# ", "(?m)^## Purpose$"]
+forbidden_content = ["(?m)^Date:"]
+projections = []
+verification = ["structure", "links_resolve"]
+
+[[artifact]]
+id = "runtime_adapter"
+paths = ["agent-os/adapters/*.md"]
+canonical_owner = "matched_file"
+consumer = ["named_runtime"]
+load_mode = "runtime_condition_triggered"
+required_structure = ["(?m)^# ", "(?m)^## Purpose$"]
+forbidden_content = ["(?m)^Date:"]
+projections = []
+verification = ["structure", "runtime_contract_tests"]
+
+[[artifact]]
+id = "skill_adapter"
+paths = [
+  "agent-os/skills/README.md",
+  ".agents/skills/**/*.md",
+  ".claude/skills/**/*.md",
+]
+canonical_owner = "referenced_kernel_file"
+consumer = ["codex", "claude"]
+load_mode = "native_skill_trigger"
+required_structure = ["(?m)^(# |---$)"]
+forbidden_content = ["(?m)^Date:"]
+projections = []
+verification = ["structure", "source_reference"]
+
+[[artifact]]
+id = "kernel_memory"
+paths = ["agent-os/memory/*.md"]
+canonical_owner = "matched_file"
+consumer = ["memory_router", "runtime_skills"]
+load_mode = "memory_condition_triggered"
+required_structure = ["(?m)^# ", "(?m)^## Purpose$"]
+forbidden_content = ["(?m)^Date:"]
+projections = []
+verification = ["structure", "memory_contract_tests"]
+
+[[artifact]]
+id = "runtime_state"
+paths = ["agent-os/state/*.md", "agent-os/handoffs/*.md"]
+canonical_owner = "runtime_state"
+consumer = ["hooks", "future_sessions"]
+load_mode = "runtime_or_resume"
+required_structure = ["(?m)^# "]
+forbidden_content = []
+projections = []
+verification = ["structure", "preserved_on_install"]
+
+[[artifact]]
+id = "plan"
+paths = ["PLANS.md"]
+canonical_owner = "PLANS.md"
+consumer = ["current_and_future_sessions"]
+load_mode = "resume_when_current_plan_exists"
+required_structure = ["(?m)^# Plans$", "(?m)^## Current Plan$"]
+forbidden_content = []
+projections = ["wiki/ledgers/PLANS.md"]
+verification = ["single_current_plan", "preserved_on_install"]
+
+[[artifact]]
+id = "progress"
+paths = ["PROGRESS.md"]
+canonical_owner = "PROGRESS.md"
+consumer = ["humans", "future_sessions"]
+load_mode = "resume_or_report"
+required_structure = ["(?m)^# Progress$", "(?m)^## Verified Milestones$"]
+forbidden_content = []
+projections = ["wiki/ledgers/PROGRESS.md"]
+verification = ["evidence_present", "preserved_on_install"]
+
+[[artifact]]
+id = "decision"
+paths = ["DECISIONS.md"]
+canonical_owner = "DECISIONS.md"
+consumer = ["current_and_future_sessions"]
+load_mode = "when_decision_constrains_task"
+required_structure = ["(?m)^# Decisions$", "(?m)^## Durable Decisions$"]
+forbidden_content = []
+projections = ["wiki/ledgers/DECISIONS.md"]
+verification = ["reason_and_scope_present", "preserved_on_install"]
+
+[[artifact]]
+id = "handoff"
+paths = ["HANDOFF.md"]
+canonical_owner = "HANDOFF.md"
+consumer = ["next_session"]
+load_mode = "every_start_or_resume"
+required_structure = ["(?m)^# Handoff$", "(?m)^## Current Snapshot$"]
+forbidden_content = []
+projections = ["wiki/ledgers/HANDOFF.md"]
+verification = ["single_current_snapshot", "preserved_on_install"]
+
+[[artifact]]
+id = "ledger_projection"
+paths = [
+  "wiki/ledgers/PLANS.md",
+  "wiki/ledgers/PROGRESS.md",
+  "wiki/ledgers/DECISIONS.md",
+  "wiki/ledgers/HANDOFF.md",
+]
+canonical_owner = "corresponding_root_ledger"
+consumer = ["wiki_navigation"]
+load_mode = "symlink_projection"
+required_structure = ["(?m)^# "]
+forbidden_content = []
+projections = []
+verification = ["ledger_symlink_exact"]
+
+[[artifact]]
+id = "wiki_index"
+paths = ["wiki/index.md"]
+canonical_owner = "derived_memory_view"
+consumer = ["humans", "agents"]
+load_mode = "wiki_navigation"
+required_structure = ["(?m)^# "]
+forbidden_content = []
+projections = []
+verification = ["wiki_reachability", "fixable_view"]
+
+[[artifact]]
+id = "wiki_log"
+paths = ["wiki/log.md"]
+canonical_owner = "wiki_lifecycle_history"
+consumer = ["memory_audit"]
+load_mode = "lifecycle_audit_only"
+required_structure = ["(?m)^# "]
+forbidden_content = []
+projections = []
+verification = ["lifecycle_events_only"]
+
+[[artifact]]
+id = "task"
+allow_empty = true
+paths = ["wiki/TASKS/20*.md"]
+canonical_owner = "matched_task"
+consumer = ["current_and_future_sessions"]
+load_mode = "named_cross_session_task"
+required_structure = ["(?m)^# ", "(?m)^## Goal$", "(?m)^## Boundaries$", "(?m)^## Evidence$", "(?m)^## Authority$", "(?m)^## Handoff$"]
+forbidden_content = []
+projections = []
+verification = ["task_contract_shape", "indexed"]
+
+[[artifact]]
+id = "chat"
+allow_empty = true
+paths = ["wiki/CHATS/20*.md"]
+canonical_owner = "matched_chat_distillation"
+consumer = ["future_sessions"]
+load_mode = "exact_intent_lookup"
+required_structure = ["(?m)^# "]
+forbidden_content = []
+projections = []
+verification = ["distilled_not_transcript", "indexed"]
+
+[[artifact]]
+id = "knowledge"
+paths = ["wiki/knowledge/*-*.md"]
+canonical_owner = "concept_path_identity"
+consumer = ["tasks_matching_concept"]
+load_mode = "selective_semantic_recall"
+required_structure = ["(?m)^---$", "(?m)^type:", "(?m)^status:", "(?m)^last_confirmed:", "(?m)^supersedes:", "(?m)^superseded_by:", "(?m)^sources:"]
+forbidden_content = []
+projections = []
+verification = ["supersession_chain", "indexed"]
+
+[[artifact]]
+id = "error"
+allow_empty = true
+paths = ["wiki/errors/20*.md"]
+canonical_owner = "same_root_record"
+consumer = ["memory_router"]
+load_mode = "trigger_match_max_three"
+required_structure = ["(?m)^---$", "(?m)^error_id:", "(?m)^root_id:", "(?m)^status:", "(?m)^recurrence:", "(?m)^triggers:", "(?m)^landing_level:", "(?m)^landing_target:", "(?m)^regression:"]
+forbidden_content = []
+projections = ["wiki/errors/_INDEX.md#AGENTOS_ERROR_RECORDS"]
+verification = ["same_root_unique", "landing_resolves", "regression_resolves", "size_limit"]
+
+[[artifact]]
+id = "error_archive"
+allow_empty = true
+paths = ["wiki/errors/archive/*.md"]
+canonical_owner = "historical_error_record"
+consumer = ["explicit_history_lookup"]
+load_mode = "archive_only"
+required_structure = ["(?m)^# "]
+forbidden_content = []
+projections = []
+verification = ["archive_reachable"]
+
+[[artifact]]
+id = "error_index"
+paths = ["wiki/errors/_INDEX.md"]
+canonical_owner = "semantic_rules_plus_derived_view"
+consumer = ["memory_router", "humans"]
+load_mode = "bounded_error_recall"
+required_structure = ["(?m)^# Error Index$", "(?m)^## High-Priority Rules$", "BEGIN AGENTOS ERROR RECORDS", "END AGENTOS ERROR RECORDS"]
+forbidden_content = []
+projections = []
+verification = ["unique_rule_ids", "fixable_view"]
+
+[[artifact]]
+id = "error_digest"
+allow_empty = true
+paths = ["wiki/errors/_DIGEST_*.md"]
+canonical_owner = "matched_digest"
+consumer = ["pattern_lookup"]
+load_mode = "explicit_or_triggered"
+required_structure = ["(?m)^# "]
+forbidden_content = []
+projections = []
+verification = ["size_limit", "index_linked"]
+
+[[artifact]]
+id = "raw_manifest"
+paths = ["wiki/raw/MANIFEST.md"]
+canonical_owner = "raw_source_inventory"
+consumer = ["source_ingest"]
+load_mode = "source_lookup"
+required_structure = ["(?m)^# Raw Source Manifest$", "(?m)^## Sources$"]
+forbidden_content = []
+projections = []
+verification = ["raw_coverage", "source_paths_resolve"]
+
+[[artifact]]
+id = "raw_source"
+allow_empty = true
+paths = ["wiki/raw/20*.md"]
+canonical_owner = "retained_source"
+consumer = ["explicit_source_lookup"]
+load_mode = "manifest_reference"
+required_structure = ["(?m)^# "]
+forbidden_content = []
+projections = []
+verification = ["manifest_registered"]
+
+[[artifact]]
+id = "exemplar"
+allow_empty = true
+paths = ["wiki/exemplars/*-20*.md"]
+canonical_owner = "accepted_sample"
+consumer = ["matching_delivery_task"]
+load_mode = "explicit_pattern_recall"
+required_structure = ["(?m)^type:", "(?m)^acceptance:", "(?m)^accepted_scope:"]
+forbidden_content = []
+projections = []
+verification = ["verbatim", "indexed"]
+
+[[artifact]]
+id = "exemplar_index"
+allow_empty = true
+paths = ["wiki/exemplars/_INDEX.md"]
+canonical_owner = "exemplar_collection"
+consumer = ["matching_delivery_task"]
+load_mode = "collection_entry"
+required_structure = ["(?m)^# "]
+forbidden_content = []
+projections = []
+verification = ["indexed"]
+
+[[artifact]]
+id = "collection_readme"
+paths = [
+  "wiki/CHATS/README.md",
+  "wiki/TASKS/README.md",
+  "wiki/docs/README.md",
+  "wiki/knowledge/README.md",
+  "wiki/raw/README.md",
+  "wiki/ledgers/README.md",
+]
+canonical_owner = "matched_collection"
+consumer = ["memory_maintainers"]
+load_mode = "collection_entry"
+required_structure = ["(?m)^# "]
+forbidden_content = []
+projections = []
+verification = ["structure"]
+
+[[artifact]]
+id = "memory_archive"
+allow_empty = true
+paths = ["wiki/archive/*.md"]
+canonical_owner = "historical_source"
+consumer = ["explicit_history_lookup"]
+load_mode = "archive_only"
+required_structure = ["(?m)^# "]
+forbidden_content = []
+projections = []
+verification = ["archive_reachable"]
+
+[[artifact]]
+id = "evidence_output"
+paths = ["outputs/**/*.md"]
+canonical_owner = "producing_task"
+consumer = ["humans", "future_sessions"]
+load_mode = "explicit_reference"
+required_structure = ["(?m)^# "]
+forbidden_content = []
+projections = []
+verification = ["structure", "claim_evidence_gate"]

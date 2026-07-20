@@ -1,7 +1,5 @@
 # Completion Gate
 
-Date: 2026-07-01
-
 ## Purpose
 
 Completion Gate decides whether there is enough evidence to say the active user object is complete.
@@ -29,7 +27,12 @@ If the answer is not established by evidence, do not use completion wording.
 ```yaml
 completion_gate:
   active_user_object:
-  claimed_completion:
+  done_when:
+    - condition:
+      evidence: []
+  open_items:
+  blocker:
+  evidence_layers:
   user_visible_change:
   delivered_artifact:
   artifact_type: answer | file | test | script | report | runtime | source_gate | subagent_report | template | plan | other
@@ -37,6 +40,10 @@ completion_gate:
   forbidden_substitution_check:
   support_artifacts:
   remaining_gaps:
+  memory_disposition:
+    status: reconciled | not_needed
+    destinations:
+    reason:
   completion_status: complete | partial | support_only | blocked | not_started
 ```
 
@@ -61,11 +68,9 @@ not_started:
 
 ## Acceptance Quiz
 
-For large deliveries (multi-file changes, new subsystems, long working sessions),
-attach a short recognition-type quiz (choice/judgment questions) to the completion
-report so the user can verify their own understanding before accepting. The user
-may waive it. A delivery the user cannot pass a quiz on is submitted, not yet
-accepted — and each quiz calibrates the user as a verifier at zero study cost.
+For a large delivery, offer a recognition check only when it helps the user
+evaluate the result and Question Admission allows it. It is not mandatory user
+labor and cannot substitute for missing completion evidence.
 
 ## Forbidden Completion Claims
 
@@ -76,23 +81,23 @@ accepted — and each quiz calibrates the user as a verifier at zero study cost.
 - "Source gate complete, therefore persona/source task complete" when requested source priority is not satisfied.
 - "Runtime works, therefore LLM dialogue entry works" when requested_layer is conversation.
 - "aos-lint passed, therefore Agent OS works" because aos-lint proves structure only.
-- "Turn done" without emitting the per-turn audit block and appending it to agent-os/state/audit-log.md. No turn completes without its audit reported (agent-os/review/per-turn-audit-gate.md).
+- "Task complete" while open obligations or a recorded next action remain.
 ```
 
 ## Evidence Requirements
 
-For this Agent OS kernel migration, completion requires:
+Completion requires:
 
 ```text
-- agent-os/ directory and required files exist.
-- Six layers are placed in the mapped kernel paths.
-- boot.md defines minimum startup.
-- router.md defines task routing and skill-use timing.
-- review/ contains Reasoning, Intent, Contract, Route, Evidence, Report, and Completion gate coverage.
-- tools/aos-lint.py checks structure and states that it is not behavioral proof.
-- AGENTS.md points to agent-os/ while preserving existing adapter excerpts.
-- Old RB, ICG, TC, RKP, ECG, AEL checks pass.
-- Agent OS kernel migration checks pass.
-- Documentation hygiene checks pass.
+- The accepted active goal has its contracted user-visible success.
+- Every completion condition appears exactly once with relevant verified
+  evidence, and no open item or blocker remains.
+- The session-local `active_work` state passes its deterministic schema check.
+- Durable memory is updated only when it has concrete future use; Stop does not
+  invent semantic memory.
+- Deterministic tests prove only tested invariants. Runtime, model-sample, or
+  live-task evidence is additionally required when the Task Contract requests
+  that layer; no average score hides a safety-critical failure.
+- With no open item, further mutation or delegation is unnecessary unless new
+  evidence first opens a required item.
 ```
-

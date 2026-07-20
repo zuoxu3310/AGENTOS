@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""PostToolUse hook: auto-run aos-lint after any edit under agent-os/ (state/ excluded).
-
-Converts the prose rule "run aos-lint after editing the AgentOS kernel" into a
-mechanical step: lint failures are fed straight back to the agent (exit 2).
-state/ files churn every turn and are structure-checked elsewhere, so they do
-not trigger a lint run.
-"""
+"""PostToolUse hook: lint only after structured edits to governed documents."""
 from __future__ import annotations
 
 import subprocess
@@ -15,49 +9,64 @@ from pathlib import Path
 import aos_common as aos
 
 
+STRUCTURED_EDIT_TOOLS = {"Edit", "Write", "MultiEdit"}
+ROOT_LEDGERS = {"PLANS.md", "PROGRESS.md", "DECISIONS.md", "HANDOFF.md"}
+
+
+def _relative(root: Path, value: str) -> str | None:
+    try:
+        path = Path(value).expanduser()
+        if not path.is_absolute():
+            path = root / path
+        return path.resolve().relative_to(root.resolve()).as_posix()
+    except Exception:
+        return None
+
+
+def edited_governed_paths(data: dict, root: Path) -> list[str]:
+    tool = str(data.get("tool_name") or "")
+    if tool not in STRUCTURED_EDIT_TOOLS:
+        return []
+    tool_input = data.get("tool_input") or {}
+    candidates = [
+        value for key in ("file_path", "path", "target_file", "file")
+        if isinstance((value := tool_input.get(key)), str) and value
+    ]
+    relative = [_relative(root, item) for item in candidates]
+    return sorted({
+        item for item in relative if item and (
+            (item.startswith("agent-os/") and not item.startswith("agent-os/state/"))
+            or item.startswith("wiki/")
+            or item in ROOT_LEDGERS
+        )
+    })
+
+
 def main() -> int:
     data = aos.hook_input()
     if aos.disabled():
         return 0
-    tool = data.get("tool_name") or ""
-    tool_input = data.get("tool_input") or {}
     root = aos.project_root(data)
-
-    if tool == "Bash":
-        # Heuristic: shell commands that look like writes into the kernel (state/ excluded) also trigger lint
-        cmd = tool_input.get("command") or ""
-        write_hints = ("rm ", "mv ", "cp ", "sed -i", "tee ", "truncate")
-        import re as _re
-        redirected = _re.search(r">>?\s*\S*agent-os/(?!state/)", cmd)
-        if not ("agent-os/" in cmd and (redirected or any(h in cmd for h in write_hints))):
-            return 0
-        rel_posix = "agent-os/(via Bash)"
-    else:
-        file_path = tool_input.get("file_path") or ""
-        if not file_path:
-            return 0
-        try:
-            rel = Path(file_path).resolve().relative_to(root.resolve())
-        except ValueError:
-            return 0
-        rel_posix = rel.as_posix()
-        if not rel_posix.startswith("agent-os/") or rel_posix.startswith("agent-os/state/"):
-            return 0
+    paths = edited_governed_paths(data, root)
+    if not paths:
+        return 0
     lint = root / "agent-os" / "tools" / "aos-lint.py"
     if not lint.is_file():
         return 0
     proc = subprocess.run(
         [sys.executable, str(lint)], capture_output=True, text=True, cwd=root, timeout=60
     )
-    if proc.returncode != 0:
-        fails = [l for l in proc.stdout.splitlines() if l.startswith("FAIL")]
-        print(
-            f"aos-lint FAIL after edit to {rel_posix} (the kernel is structurally consistent only after this is fixed):\n"
-            + "\n".join(fails[:20]),
-            file=sys.stderr,
-        )
-        return 2
-    return 0
+    if proc.returncode == 0:
+        return 0
+    failures = [line for line in proc.stdout.splitlines() if line.startswith("FAIL")]
+    print(
+        "AgentOS 文档结构检查未通过（刚修改："
+        + ", ".join(paths)
+        + "）：\n"
+        + "\n".join(failures[:20]),
+        file=sys.stderr,
+    )
+    return 2
 
 
 if __name__ == "__main__":

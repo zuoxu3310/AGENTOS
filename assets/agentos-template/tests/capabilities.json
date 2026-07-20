@@ -1,0 +1,68 @@
+{
+  "schema_version": 2,
+  "capabilities": [
+    {
+      "id": "C01",
+      "name": "Long-task finish line",
+      "user_visible_contract": "Long work has observable finish conditions, only required open items, and evidence for every completed condition.",
+      "decision_sources": ["agent-os/review/task-contract.md"],
+      "deterministic_tests": ["tests/unit/test_active_work.py::ActiveWorkContractTests::test_done_task_needs_each_condition_exactly_once_with_evidence"],
+      "runtime_evidence_required": "A pending long task must survive a Hook round trip and become delivered only after the recheck.",
+      "live_evidence_required": "A real long Codex task stops at its accepted finish line without adding unrelated work."
+    },
+    {
+      "id": "C02",
+      "name": "Attention restoration",
+      "user_visible_contract": "Startup, resume, clear, and compact restore only the current long-task goal, finish conditions, open items, and next action.",
+      "decision_sources": ["agent-os/boot.md"],
+      "deterministic_tests": ["tests/integration/test_runtime_adapters.py::RuntimeAdapterContractTests::test_session_start_restores_only_minimal_long_task_state"],
+      "runtime_evidence_required": "Both runtime adapters inject the same minimal state shape.",
+      "live_evidence_required": "A resumed or compacted Codex task recovers its next action without treating old state as permission."
+    },
+    {
+      "id": "C03",
+      "name": "Real user message reconsideration",
+      "user_visible_contract": "Every real user message is reconsidered as continuation, correction, replacement, or unrelated work; an internal delivery continuation is skipped.",
+      "decision_sources": ["agent-os/rules-card.md"],
+      "deterministic_tests": ["tests/integration/test_runtime_adapters.py::RuntimeAdapterContractTests::test_user_prompt_reconsiders_every_real_message_but_skips_stop_continuation"],
+      "runtime_evidence_required": "Both adapters inject the reminder for real prompts and stay silent for the internal marker.",
+      "live_evidence_required": "A mid-task correction changes only the requested part and then resumes unaffected work."
+    },
+    {
+      "id": "C04",
+      "name": "Mechanical tool boundaries",
+      "user_visible_contract": "Tool hooks do not guess intent from Shell text and do not block ordinary reading commands.",
+      "decision_sources": [".codex/hooks/aos_guard_enforcer.py", ".codex/hooks/aos_kernel_lint.py"],
+      "deterministic_tests": ["tests/integration/test_runtime_adapters.py::RuntimeAdapterContractTests::test_shell_read_probes_are_never_semantically_classified"],
+      "runtime_evidence_required": "Common read commands and composed reads produce no permission decision or goal reminder.",
+      "live_evidence_required": "A real Codex task runs cat, test -e, a quoted alternation search, and a read pipeline without false blocking."
+    },
+    {
+      "id": "C05",
+      "name": "Single Codex delegation backend",
+      "user_visible_contract": "Codex delegates only through the vendored Dynamic Workflow runner while Claude keeps native Workflow.",
+      "decision_sources": ["agent-os/adapters/codex-workflow.md"],
+      "deterministic_tests": ["tests/integration/test_runtime_adapters.py::RuntimeAdapterContractTests::test_codex_blocks_native_delegation_and_allows_vendored_runner"],
+      "runtime_evidence_required": "Native Codex delegation is denied and the vendored runner command is not denied.",
+      "live_evidence_required": "A delegated Codex canary shows one execution engine."
+    },
+    {
+      "id": "C06",
+      "name": "One long-task delivery recheck",
+      "user_visible_contract": "A finished or blocked long task gets one same-model delivery recheck; a short reply is delivered immediately.",
+      "decision_sources": ["agent-os/workflows/agent-execution-lifecycle.md"],
+      "deterministic_tests": ["tests/integration/test_runtime_adapters.py::RuntimeAdapterContractTests::test_pending_long_task_stops_once_then_marks_delivered", "tests/integration/test_runtime_adapters.py::RuntimeAdapterContractTests::test_short_reply_has_no_forced_second_generation"],
+      "runtime_evidence_required": "Pending becomes delivered on the second Stop and no-state Stop stays silent.",
+      "live_evidence_required": "A real long-task final is rechecked once while a direct one-sentence question is not regenerated."
+    },
+    {
+      "id": "C07",
+      "name": "Plain direct reporting",
+      "user_visible_contract": "Replies default to simple natural language without hiding decisions, risks, evidence boundaries, or remaining work.",
+      "decision_sources": ["agent-os/rules-card.md"],
+      "deterministic_tests": ["tests/scenarios/test_instruction_stack_contract.py::InstructionStackContractTests::test_plain_language_is_default_without_fixed_length_scoring"],
+      "runtime_evidence_required": "Resident rules and the long-task Stop prompt carry the same delivery principle without a style scorer.",
+      "live_evidence_required": "A real Codex report is understandable without session context and does not dump internal mechanics."
+    }
+  ]
+}

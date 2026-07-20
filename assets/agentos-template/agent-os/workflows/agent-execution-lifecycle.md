@@ -1,185 +1,86 @@
 # Agent Execution Lifecycle
 
-Date: 2026-07-01
-
 ## Purpose
 
-Agent Execution Lifecycle is the order of operations that makes the review gates run together.
+This lifecycle keeps understanding, execution, evidence, delivery, and memory
+in one small closed loop. It is not a second workflow engine.
 
-It is not a new reasoning layer.
-
-## Lifecycle Order
-
-Run this order for non-small tasks:
+## Lifecycle
 
 ```text
-intake -> reasoning_base_check -> intent_gate -> task_contract -> execution_plan -> route_checkpoints -> verification -> evidence_to_claim_gate -> per_turn_audit -> final_response -> handoff_or_memory
+read the real user message
+-> reconstruct the result and finish conditions
+-> investigate what can be known
+-> resolve only genuinely user-owned blockers
+-> choose the smallest task contract
+-> choose the next work segment
+-> execute with native tools or the accepted workflow backend
+-> verify each finish condition
+-> stop when no required item remains
+-> deliver in simple result-level language
+-> update only memory that will change future work
 ```
 
-Small, clear, reversible tasks can use a short path. The short path still
-requires the per-turn audit and report (agent-os/review/per-turn-audit-gate.md);
-only its size shrinks, never its existence.
+## Intake
 
-Conditional gates attach inside the spine:
+Start from first principles. Separate the user's result from named means,
+investigate the named object, and decide what is a user-owned outcome choice
+versus AI-owned implementation work. A decided outcome does not need a second
+confirmation. A real user-owned blocker receives a researched recommendation,
+tradeoffs, and one clear question.
 
-- intent_gate: judgment, evaluation, decision, or recommendation questions also run agent-os/review/anti-sycophancy-gate.md.
-- execution_plan: code, dependency, or feature work also runs agent-os/review/minimal-code-gate.md.
+Every real user message is reconsidered as a possible continuation, correction,
+replacement, or unrelated new task. An internal Stop continuation is not a new
+task. Restored state preserves context but grants no new authority.
 
-## Scope Boundaries
+## Execution
 
-```text
-- Do not build a full subagent system.
-- Do not build a memory system unless the latest user message or Task Contract makes memory, wiki, handoff, or audit the active deliverable.
-- Do not build an automation dashboard.
-- Do not turn every command into a long report. Exception: every turn must emit a SHORT per-turn audit block and append one line to agent-os/state/audit-log.md. Short is required; long is not.
-- Do create a minimum closed loop that keeps the review gates in order.
-- If the task requires script-owned multi-worker execution, route through agent-os/workflows/dynamic-workflow.md after Task Contract.
-- If the task requires durable project memory or handoff, route through agent-os/memory/ after Task Contract.
-- If the task requires user-visible worker auditability, route through agent-os/adapters/runtime-visibility.md before completion wording.
-- If the task requires dual-runtime skill availability, route through agent-os/adapters/skill-parity.md and validate each runtime's native skill format.
-- When delegating to workers or subagents, the worker prompt must carry the active user object, forbidden substitutions, and the evidence standard; worker outputs stay support artifacts until the Promotion Gate.
-- Frame hygiene: strip the user's stance and emotional framing from worker prompts and search queries — pass neutral questions ("evaluate A" not "why is A wrong"), or the whole downstream pipeline inherits the bias.
-```
+Use an implicit one-sentence finish condition for a short single-result task.
+Use the session-local `active_work` state for a long task. Before each work
+segment, keep its purpose, expected result, and stop condition in current model
+context. Several tools may serve one segment; hooks do not remind the model on
+every tool call.
 
-## Micro Lifecycle
+Before a non-trivial step, identify which finish condition it advances or which
+evidenced risk it reduces. Skip steps that do neither. Once no open item remains,
+only verify and deliver; do not add a convenient mechanism, document, test, or
+cleanup task.
 
-Use this for medium-low-risk tasks that still are not tiny:
+Codex delegation uses the vendored Dynamic Workflow runner as its sole delegated
+engine. `NO_DELEGATION` means the main conversation works directly. Claude uses
+native Workflow. Worker outputs remain support material until the main model
+verifies and promotes them.
 
-```yaml
-agent_lifecycle_micro:
-  active_user_object:
-  task_contract:
-  route:
-  verification:
-  evidence_to_claim_gate:
-  final_response:
-  per_turn_audit_reported: required
-  audit_log_appended: agent-os/state/audit-log.md
-```
+## Verification And Completion
 
-## Full Lifecycle
+Match every finish condition to direct evidence. A passing test proves only the
+behavior it observed. Do not substitute a plan, file, report, test count, worker
+count, or visible effort for the result the user requested.
 
-```yaml
-agent_execution_lifecycle:
-  intake:
-    latest_user_message:
-    source_of_truth_order:
-    initial_user_visible_need:
-    small_task_decision: tiny_skip | non_small_lifecycle_required
+A long task is done only when every finish condition has evidence, no open item
+remains, and there is no blocker. A blocked task records the exact blocker. A
+finished or blocked long task sets `report_state: pending`; Stop then gives the
+same main model one delivery recheck and marks a valid second Stop delivered.
 
-  reasoning_base_check:
-    active_object:
-    first_principles:
-    claim_type_risks:
-    causal_language_risks:
-    proxy_risk:
+## User-Facing Delivery
 
-  intent_gate:
-    classified_user_content:
-      goal:
-      means:
-      constraints:
-      evidence:
-      ambiguity:
-    active_user_object:
-    ask_level: 0_ask | 1_ask | short_grill | full_clarification
-    assumptions_when_not_asking:
+Decide what the user must know, decide, or do. Lead with status and result in
+simple natural language. Include technical detail only when the user asks for
+it or when it changes a decision, risk, or verification. Do not expose raw
+internal work, jargon, translation-like phrasing, or empty setup. Do not shorten
+away a boundary, remaining item, or evidence gap.
 
-  task_contract:
-    contract_status: formed | needs_rebuild | blocked
-    deliverable:
-    evidence_standard:
-    forbidden_substitutions:
-    ask_required_when:
+## Memory
 
-  execution_plan:
-    steps:
-    verification_points:
-    delegation_allowed:
-    stop_conditions:
+At a meaningful stage end, follow `agent-os/memory/routing.md`. Update only the
+canonical artifact whose future use is concrete. Git keeps history; Wiki and
+ledgers keep only current or reusable meaning.
 
-  route_checkpoints:
-    - trigger:
-      artifact_or_branch:
-      changes_active_user_object: yes | no | unknown
-      promotion_class: mainline | support | blocker | side_route | discard
-      return_to_mainline_rule:
+## Failure Handling
 
-  verification:
-    checks_run:
-    evidence_collected:
-    evidence_gaps:
-    completion_evidence_status: sufficient | insufficient | blocked
-
-  evidence_to_claim_gate:
-    key_claims:
-      - claim:
-        claim_type:
-        evidence_source:
-        evidence_strength:
-        allowed_wording:
-        downgrade_or_remove:
-
-  per_turn_audit:
-    entry_appended: agent-os/state/audit-log.md
-    report_block_in_answer: required
-
-  final_response:
-    answer:
-    evidence_summary:
-    limits_or_risks:
-    next_step_if_any:
-
-  handoff_or_memory:
-    needed: yes | no
-    destination:
-    active_user_object:
-    contract:
-    route:
-    evidence_state:
-    open_blockers:
-```
-
-## Failure Fallbacks
-
-```text
-intent unclear:
-  Return to Intent-Causal Gate. Ask only if the answer materially changes route, risk, scope, validation, or user-visible success.
-
-contract invalid:
-  Rebuild Task Contract before further execution.
-
-branch hijack:
-  Return to Route Keeper / Promotion Gate. Classify the branch and restore the mainline.
-
-evidence insufficient:
-  Return to Verification, gather stronger evidence, or downgrade the claim through Evidence-to-Claim Gate.
-
-completion evidence insufficient:
-  Do not final the task. Continue verification, or report partial/blocker status without completion wording if user-facing status is needed.
-```
-
-## Forbidden Shortcuts
-
-```text
-- Do not skip Task Contract and execute directly on a non-small task.
-- Do not treat a plan as completion.
-- Do not use test pass alone to final the task.
-- Do not write a subagent report into final_response without source-path, command, or file verification.
-- Do not handoff a conclusion that has not passed Evidence-to-Claim Gate.
-- After context compression, do not continue unless active_user_object, contract, route, and evidence_state are preserved or reconstructed from sources.
-```
-
-## Context Compression Resume State
-
-Before or after context compression, preserve:
-
-```yaml
-context_compression_resume_state:
-  active_user_object:
-  contract:
-  route:
-  evidence_state:
-  last_route_checkpoint:
-  next_safe_action:
-```
+- If intent is unclear, investigate first and ask only about a genuine blocker.
+- If the finish line is wrong, correct it before more execution.
+- If evidence is weak, gather stronger evidence or weaken the claim.
+- If compression loses context, restore `active_work` before continuing.
+- If a long-task state file is mechanically invalid, repair it before marking
+  the delivery complete.

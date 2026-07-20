@@ -1,7 +1,5 @@
 # Prompt Craft Gate
 
-Date: 2026-07-06
-
 ## Purpose
 
 Every prompt written for another model or agent — subagent tasks, panel and
@@ -17,6 +15,14 @@ worked examples of this gate.
 ## Checklist
 
 Apply before dispatching the prompt:
+
+```xml
+<role>Who the receiving model is and what boundary it must preserve.</role>
+<context>Grounded materials, source paths, and task contract.</context>
+<instructions>What to do, why it matters, and what is forbidden.</instructions>
+<output_format>Required artifact, language, evidence, and completeness.</output_format>
+<question>The concrete assignment, placed after its materials.</question>
+```
 
 ```text
 structure:
@@ -53,6 +59,22 @@ final scan:
   - zero-context test: would a colleague with no context on the task know
     exactly what to produce from this prompt alone?
 ```
+
+## Enforcement Boundary
+
+2026-07-11 (ZX "该上闸机的上闸机"): the gate's TRIGGER is now mechanical. The gate
+was law since 2026-07-06 yet a bare one-line probe still went out to codex exec
+on 2026-07-10 (wiki/errors) — prompt-layer rules do not fire by themselves. A
+PreToolUse hook (aos_prompt_craft_guard.py, both runtimes) is a structure-only
+guard. It denies dispatches
+whose prompt lacks XML-sectioned STRUCTURE (>=3 distinct tags): Agent/Task
+prompts, bare string-literal agent() prompts in Workflow scripts, and inline
+codex exec / claude -p / gemini -p commands without a prompt file or heredoc.
+Probes are not exempt. Passing three labels does not prove prompt quality. The
+hook checks structure only; semantic prompt quality still comes from the gate's
+content review — section quality, quote
+grounding, motivation, and self-checks remain this gate's prompt-layer
+checklist and are NOT mechanically verified.
 
 ## Claim Boundary
 

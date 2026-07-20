@@ -5,10 +5,9 @@ description: Knowledge-format and lifecycle method for AgentOS project memory.
 tags: [agentos, wiki, okf, memory, lifecycle]
 timestamp: 2026-07-01T20:20:00+03:00
 confidence: 0.78
-status: active
-last_confirmed: 2026-07-01
-supersedes:
-  - wiki/TASKS/2026-07-01-agentos-memory-visibility-base-v1.md
+status: current
+last_confirmed: 2026-07-20
+supersedes: []
 superseded_by:
 sources:
   - https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing
@@ -54,4 +53,4 @@ When new evidence changes old memory, do not leave both claims as equally curren
 
 ## Claim Boundary
 
-This method is active but not yet fully automated. Current evidence supports the format and lifecycle rules; it does not prove hybrid search, automatic contradiction detection, or event-driven hooks.
+This method is current for AgentOS knowledge documents. Current evidence supports the format and lifecycle rules; it does not prove automatic semantic promotion, contradiction resolution, or truth.

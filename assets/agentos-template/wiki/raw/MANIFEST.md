@@ -1,4 +1,8 @@
 # Raw Source Manifest
 
-Record raw source ingests here with source path, date, owner, and promotion status.
+## Sources
 
+| Source path | Recorded | Owner | Status | Promotion |
+|---|---|---|---|---|
+
+Every retained raw file must have exactly one row. A row records availability; it does not make the source semantic truth.

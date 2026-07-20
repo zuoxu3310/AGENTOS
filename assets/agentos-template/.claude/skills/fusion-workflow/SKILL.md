@@ -1,6 +1,6 @@
 ---
 name: fusion-workflow
-description: Runs AgentOS Fusion Workflow — fan one question out to a blind panel of models (free web AIs via AgentChat, or codex/gemini/claude CLIs), judge all answers, deliver one fused answer with full provenance. MANUAL ONLY — use exclusively when the user explicitly invokes it (/fusion, "run Fusion", or names a panel). Never auto-initiate or suggest-trigger it.
+description: Runs AgentOS Fusion Workflow — fan one question out to a blind panel of models (free web AIs via AgentChat, or codex/gemini/claude CLIs), judge all answers, deliver one fused answer with full provenance. MANUAL ONLY — use exclusively when Master ZX explicitly invokes it (/fusion, "跑 Fusion", "融合回答", "多模型融合", or names a panel). Never auto-initiate or suggest-trigger it.
 ---
 
 # Fusion Workflow
@@ -32,14 +32,15 @@ codex runner    : .claude/skills/fusion-workflow/scripts/run_codex_sandboxed.sh
                   (default sandbox, empty scratch cwd, web search only).
                   Vendor run_codex.sh uses --dangerously-bypass-approvals-and-sandbox
                   and is blocked by the permission classifier — use it only when
-                  the user explicitly approves an unsandboxed panelist run.
-claude panelists: Agent tool, model: haiku unless the user names a bigger
+                  Master ZX explicitly approves an unsandboxed panelist run.
+claude panelists: Agent tool, model: haiku unless Master ZX names a bigger
                   model in the invocation (cost gate in the kernel contract).
 judge           : a SEPARATE cold Agent-tool subagent per run — never the
                   orchestrator session (it packed the packet and has its own
-                  lean; orchestrator-as-judge collapses independence). Default
-                  model: inherit the session tier (each /fusion trigger carries
-                  exactly one judge's cost; the user may name a tier). Give the judge ONLY: contract projection +
+                  lean; orchestrator-as-judge collapses independence, ZX
+                  2026-07-06). Default model: inherit the session tier (each
+                  /fusion trigger carries exactly one judge's cost; ZX may name
+                  a tier). Give the judge ONLY: contract projection +
                   packet/question + anonymized A/B/C answers (+ artifact files
                   for Track A). The orchestrator holds the label mapping,
                   mediates any cross-exam round, and verifies the judge's
@@ -48,7 +49,7 @@ free channel    : check `curl -s http://127.0.0.1:9222/json/version` first.
                   If Chrome CDP is down, report the launch command
                   (`bash vendor/AgentChat/scripts/start-chrome-debug.sh`) and
                   stop — do NOT silently fall through to the cli channel.
-language        : answer in the question's language (the user's language);
+language        : answer in the question's language (Chinese for Master ZX);
                   ignore the vendor default of answering in French.
 fusion mode on the free channel (default for execute/think tasks):
                   build the FreeSubAgent plan yourself — N nodes, IDENTICAL
@@ -65,10 +66,9 @@ divergence mode : only for exploration tasks — use the vendor DAG decomposer
 context packet  : if the question depends on session/project context, first
                   compile ONE self-contained packet, identical for every
                   panelist. Skeleton = the active Task Contract projected for
-                  cold readers — include ONLY: active object / deliverable /
-                  boundaries / evidence standard / forbidden substitutions, then
-                  add background facts / key file excerpts / original question
-                  verbatim / expected output and language. EXCLUDE route, candidate
+                  cold readers — include ONLY: 目标对象 / 交付物 / 边界约束 /
+                  证据标准 / 禁止替换项, then add 背景事实 / 关键文件摘录 /
+                  原题原文 / 期望输出与语言. EXCLUDE route, candidate
                   approaches, and any orchestrator hypothesis or lean (anchor
                   contamination). The same contract is later the judge's
                   yardstick and the completion gate. Keep <= ~10k chars (web
@@ -78,8 +78,8 @@ context packet  : if the question depends on session/project context, first
 anonymized judge: before judging, relabel answers A/B/C...; reveal the mapping
                   only inside the provenance file.
 cross-exam round: only if the judge finds a load-bearing contradiction; free
-                  channel by default, cli only with the user's approval; max 1 round.
-prompt assembly : NEVER send a bare one-line role ("you are the judge"). Assemble the
+                  channel by default, cli only with ZX approval; max 1 round.
+prompt assembly : NEVER send a bare one-line role ("你是法官"). Assemble the
                   panelist prompt and the judge prompt from the two templates
                   in references/ (official Anthropic/OpenAI practices baked
                   in: XML sections, long context on top + question at bottom,

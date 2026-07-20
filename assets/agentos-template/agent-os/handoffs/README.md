@@ -1,7 +1,5 @@
 # Agent OS Handoffs
 
-Date: 2026-07-01
-
 Handoff records for this Agent OS live in this directory.
 
 Use this minimum shape:
@@ -19,4 +17,3 @@ handoff:
 ```
 
 Do not write unverified claims into handoff as settled facts. Run Evidence-to-Claim Gate first.
-

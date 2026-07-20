@@ -1,7 +1,5 @@
 # Fusion Workflow
 
-Date: 2026-07-06
-
 ## Purpose
 
 Fusion Workflow is the Agent OS workflow for multi-model answer fusion: the same
@@ -36,7 +34,7 @@ Vendor code is reused, not rewritten. Do not fork vendor internals into the kern
 ## Entry Criteria — Manual Only
 
 Run Fusion ONLY when the latest user message explicitly invokes it (`/fusion`,
-"run Fusion", or an equivalent direct request from the user).
+"跑 Fusion", or an equivalent direct request from Master ZX).
 
 ```text
 forbidden:
@@ -45,7 +43,7 @@ forbidden:
   - silently escalating any other workflow into a Fusion run
 ```
 
-Decided by the user on 2026-07-06.
+Decided by Master ZX on 2026-07-06.
 
 ## Channels And Cost Gate
 
@@ -55,7 +53,7 @@ channels:
     engine: vendor/AgentChat (Chrome CDP -> free web AIs)
     token_cost: zero
     precondition: Chrome debug session up and logged in (user-side)
-  cli:                        # only when the user names it in the invocation
+  cli:                        # only when Master ZX names it in the invocation
     panelists:
       gpt: codex CLI (vendor run_codex.sh, stdin prompt, subscription quota)
       gemini: gemini CLI (adapter run_gemini_cli.sh, free-tier quota)
@@ -63,11 +61,11 @@ channels:
 cost_gate:
   - free is the default; cli runs only when the invocation names it.
   - in-session panelists default to the cheapest model tier (haiku).
-  - Fable/Opus-tier panelists require prior count+cost approval from the user
+  - Fable/Opus-tier panelists require prior count+cost approval from Master ZX
     (rule origin: wiki/errors/2026-07-06-expensive-subagents-without-approval.md).
   - the judge is a dedicated cold subagent, never the orchestrator session. It
     inherits the main-session model tier by default — one /fusion invocation
-    carries the cost of exactly one judge; the user may name a different tier
+    carries the cost of exactly one judge; Master ZX may name a different tier
     in the trigger.
   - never silently switch a failed free run to the cli channel; report instead.
 ```
@@ -164,7 +162,7 @@ dispatches the round (the judge cannot spawn agents) — each surviving panelist
 gets the OTHERS' anonymized answers and gives a short critique/defense of the
 disputed point only (not a rewrite); replies go back to the judge. Free
 channel: allowed by default (zero token cost, adds latency). CLI channel: needs
-the user's go-ahead (extra spend). Never loop more than one extra round.
+Master ZX's go-ahead (extra spend). Never loop more than one extra round.
 
 ## Execution Model
 

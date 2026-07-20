@@ -1,21 +1,21 @@
 # Runtime Visibility Adapter
 
-Date: 2026-07-01
-
 ## Purpose
 
-This adapter standard defines when an AgentOS workflow worker is visible enough for the user to audit.
+This adapter standard defines when an AgentOS workflow worker is visible enough for Master ZX to audit.
 
-It does not replace `agent-os/workflows/dynamic-workflow.md`; it supplies runtime-specific evidence rules.
+For Codex it supports `agent-os/adapters/codex-workflow.md`. For Claude it
+describes evidence boundaries for Claude's native Workflow; it does not install
+or replace that Workflow.
 
 ## Classification
 
 ```text
 kernel:
-  dynamic workflow contract and promotion gates under agent-os/
+  promotion and evidence gates under agent-os/
 
 adapter:
-  Codex thread tools, Codex app-server, Claude Dynamic Workflows, Claude Agent Teams
+  Codex workflow adapter and thread tools; Claude native Workflow evidence
 
 verification:
   list/read/open checks, state boards, final reports, E2E pressure-test artifacts
@@ -113,5 +113,5 @@ This worker is tool-readable and listable, but user-visible auditability is not 
 Forbidden without UI-open or equivalent evidence:
 
 ```text
-the user can audit this worker in Codex Desktop.
+Master ZX can audit this worker in Codex Desktop.
 ```

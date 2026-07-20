@@ -1,6 +1,6 @@
 ---
 name: anti-sycophancy-review
-description: Steps outside the user's framing on judgment, evaluation, decision, recommendation, or opinion questions where the phrasing may bias the answer. Use before answering one-sided, contested, or judgment-type questions in this Agent OS project.
+description: Optional adversarial framing review for explicitly requested, contested, or high-risk judgments when the normal AgentOS judgment record is insufficient. Do not auto-run for every opinion or recommendation.
 ---
 
 # Anti-Sycophancy Review
@@ -19,7 +19,9 @@ agent-os/review/anti-sycophancy-gate.md
 
 ## Trigger
 
-Use when the question is a judgment, evaluation, decision, recommendation, opinion, or one-sided framing where the user's phrasing could steer the answer. Do not use for mechanical execution.
+Use when the user explicitly requests a framing audit, or a contested high-risk
+judgment needs adversarial tools beyond the normal conclusion/basis/change-
+condition record. Do not auto-run for every judgment or mechanical execution.
 
 ## Output Shape
 

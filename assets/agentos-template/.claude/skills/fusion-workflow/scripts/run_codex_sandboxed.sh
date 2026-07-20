@@ -4,7 +4,7 @@
 # AgentOS adaptation. The vendor runner (vendor/fusion-fable/skills/fusion/scripts/run_codex.sh)
 # launches codex with --dangerously-bypass-approvals-and-sandbox and copies the whole workdir so
 # the panelist gets full local tool access. For fusion Q&A panelists that power is unnecessary,
-# and running an unsandboxed agent needs explicit user approval. This runner keeps codex in
+# and running an unsandboxed agent needs explicit Master ZX approval. This runner keeps codex in
 # its default sandbox, works in an empty scratch dir, and only enables web search.
 #
 # Usage:

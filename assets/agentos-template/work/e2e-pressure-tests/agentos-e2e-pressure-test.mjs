@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { spawnSync } from "node:child_process";
 import path from "node:path";
 import process from "node:process";
 
@@ -15,14 +14,14 @@ const requiredFiles = [
   "agent-os/boot.md",
   "agent-os/router.md",
   "agent-os/workflows/agent-execution-lifecycle.md",
-  "agent-os/workflows/dynamic-workflow.md",
+  "agent-os/adapters/codex-workflow.md",
   "agent-os/adapters/runtime-visibility.md",
   "agent-os/adapters/skill-parity.md",
+  "vendor/claude-dynamic-workflows-codex/runner/bin/run-workflow.js",
+  "vendor/claude-dynamic-workflows-codex/references/authoring.md",
+  "vendor/claude-dynamic-workflows-codex/LICENSE",
+  "vendor/claude-dynamic-workflows-codex.AGENTOS.md",
   "agent-os/memory/wiki-v2.md",
-  ".codex/config.toml",
-  ".codex/hooks.json",
-  ".codex/agentos-local-rules.md",
-  ".codex/hooks/aos_session_start.py",
   "wiki/knowledge/agentos-wiki-v2-method.md",
   "work/e2e-pressure-tests/agentos-e2e-pressure-test.mjs"
 ];
@@ -33,7 +32,6 @@ const skillPairs = [
   "route-promotion-review",
   "evidence-claim-review",
   "lifecycle-execution",
-  "dynamic-workflow",
   "memory-wiki-routing"
 ];
 
@@ -66,16 +64,28 @@ function gateWorkerClaim(claim, evidenceRefs) {
   };
 }
 
-function verifyWorkerMonitorPolicy(dynamicWorkflowText) {
+function verifyCodexWorkflowPolicy(codexWorkflowText) {
   const requiredTerms = [
-    "Worker Monitor / Reaper",
-    "stale_after",
-    "max_repair_attempts",
-    "repair_attempts",
-    "role_reuse_downgrade_rule",
-    "failed, superseded, repaired, or downgraded"
+    "NO_DELEGATION",
+    "cheapest capable",
+    "single writer",
+    "one delegated execution engine",
+    "vendor/claude-dynamic-workflows-codex/runner/bin/run-workflow.js",
+    "Monitor, Steer, Recover",
+    "workspace fingerprint",
+    "independence downgrade",
+    "failed or superseded"
   ];
-  const missingTerms = requiredTerms.filter((term) => !dynamicWorkflowText.includes(term));
+  const missingTerms = requiredTerms.filter((term) => !codexWorkflowText.includes(term));
+  const forbiddenTerms = [
+    "spawn_agent",
+    "wait_agent",
+    "followup_task",
+    "interrupt_agent",
+    "native_collaboration",
+    "optional_external_runner",
+    "optional external runner"
+  ].filter((term) => codexWorkflowText.includes(term));
 
   const reviewerRepairCase = {
     worker_monitor: {
@@ -114,37 +124,11 @@ function verifyWorkerMonitorPolicy(dynamicWorkflowText) {
     );
 
   return {
-    status: missingTerms.length === 0 && monitorHandled ? "passed" : "failed",
+    status: missingTerms.length === 0 && forbiddenTerms.length === 0 && monitorHandled ? "passed" : "failed",
     missingTerms,
+    forbiddenTerms,
     monitorHandled,
     syntheticCase: reviewerRepairCase
-  };
-}
-
-function verifyCodexSessionStartInjection() {
-  const result = spawnSync("python3", [".codex/hooks/aos_session_start.py"], {
-    cwd: root,
-    input: "{}",
-    encoding: "utf8",
-    env: {
-      ...process.env,
-      PYTHONDONTWRITEBYTECODE: "1"
-    }
-  });
-  const output = `${result.stdout || ""}\n${result.stderr || ""}`;
-  const requiredTerms = [
-    "Codex Static Rules Card",
-    "AgentOS Local Rules Card for Codex",
-    "Start every user-facing answer with",
-    "agent-os/state/audit-log.md",
-    "Codex SessionStart"
-  ];
-  const missingTerms = requiredTerms.filter((term) => !output.includes(term));
-  return {
-    status: result.status === 0 && missingTerms.length === 0 ? "passed" : "failed",
-    exitCode: result.status,
-    missingTerms,
-    outputPreview: output.slice(0, 2000)
   };
 }
 
@@ -181,22 +165,25 @@ async function main() {
   });
   if (!conceptOk) failures.push("wiki v2 concept frontmatter incomplete");
 
-  const dynamicWorkflowText = await readText("agent-os/workflows/dynamic-workflow.md");
-  const workerMonitor = verifyWorkerMonitorPolicy(dynamicWorkflowText);
+  const codexWorkflowSkill = ".agents/skills/dynamic-workflow/SKILL.md";
+  const claudeWorkflowSkill = ".claude/skills/dynamic-workflow/SKILL.md";
+  const codexWorkflowOwnership =
+    existsSync(path.join(root, codexWorkflowSkill)) &&
+    !existsSync(path.join(root, claudeWorkflowSkill));
+  steps.push({
+    name: "runtime-ownership:codex-workflow-only",
+    status: codexWorkflowOwnership ? "passed" : "failed"
+  });
+  if (!codexWorkflowOwnership) failures.push("Codex workflow adapter leaked into Claude");
+
+  const codexWorkflowText = await readText("agent-os/adapters/codex-workflow.md");
+  const workerMonitor = verifyCodexWorkflowPolicy(codexWorkflowText);
   steps.push({
     name: "dynamic-workflow:worker-monitor-stale-repair-downgrade",
     status: workerMonitor.status,
     gate: workerMonitor
   });
   if (workerMonitor.status !== "passed") failures.push("worker monitor stale repair downgrade check failed");
-
-  const codexSessionStart = verifyCodexSessionStartInjection();
-  steps.push({
-    name: "codex-session-start:static-rules-card-injection",
-    status: codexSessionStart.status,
-    gate: codexSessionStart
-  });
-  if (codexSessionStart.status !== "passed") failures.push("codex session start static rules injection failed");
 
   const unsupportedWorkerClaim = gateWorkerClaim("AgentOS is complete and fully automated.", []);
   steps.push({
@@ -211,8 +198,8 @@ async function main() {
     active_user_object: "AgentOS template structural pressure test",
     status: failures.length > 0 ? "failed" : "passed_with_scope_limits",
     scope_limits: [
-      "This template E2E test proves structural rules, skill parity, wiki frontmatter, monitor policy, Codex SessionStart script output, and promotion downgrade behavior.",
-      "It does not create runtime-visible Codex threads, prove automatic skill triggering through the Codex app trust UI, or prove production durable replay."
+      "This template E2E test proves structural rules, skill parity, wiki frontmatter, monitor policy, and promotion downgrade behavior.",
+      "It does not create runtime-visible Codex threads, prove automatic skill triggering, prove hooks, or prove production durable replay."
     ],
     steps,
     failures,
@@ -241,12 +228,6 @@ async function main() {
     `Gate result: ${workerMonitor.status}`,
     "",
     `Missing terms: ${workerMonitor.missingTerms.length ? workerMonitor.missingTerms.join(", ") : "none"}`,
-    "",
-    "## Codex SessionStart Scenario",
-    "",
-    `Gate result: ${codexSessionStart.status}`,
-    "",
-    `Missing terms: ${codexSessionStart.missingTerms.length ? codexSessionStart.missingTerms.join(", ") : "none"}`,
     "",
     "## Scope Limits",
     "",

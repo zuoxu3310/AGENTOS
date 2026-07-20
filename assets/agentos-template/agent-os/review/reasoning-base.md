@@ -1,17 +1,24 @@
 # Reasoning Base
 
-Date: 2026-07-01
-
 ## Purpose
 
-Reasoning Base is the first-layer constraint for Agent judgment, causal language, root-cause language, recommendations, and AgentOS workflows.
+Reasoning Base is AgentOS's highest cognitive-method constraint for Agent
+judgment, causal language, root-cause language, recommendations, and workflows.
+It remains subordinate to verified facts, user authority, and safety boundaries.
 
 Apply it before planning, tool use, delegation, implementation, reporting, and root-cause analysis.
 
 ## Core Rules
 
 ```text
-- Start from first principles: active object, purpose, invariants, definitions, and real constraints.
+- Start from first principles before accepting the task's apparent framing:
+  active object, real-world purpose, user-visible success, invariants, verified
+  facts, definitions, constraints, causal mechanism, and decision ownership.
+- Derive the minimum sufficient route backward from the required outcome. Do
+  not treat the current implementation, an earlier answer, a familiar pattern,
+  or the user's first suggested method as a premise that must be preserved.
+- When a premise fails, return to the active object and re-derive the route;
+  do not accumulate local fixes inside the failed frame.
 - Treat user-proposed methods, tools, workflows, and subagents as candidate interventions unless the user explicitly makes them the goal.
 - Do not collapse observation, evidence, explanation, causation, root cause, and recommendation.
 - Use `follows` only for deductive consequence.
@@ -137,4 +144,3 @@ Use for root-cause analysis, blame attribution, audit, strategy, product meaning
 10. Next discriminator: what evidence or intervention would most reduce uncertainty?
 11. Backward check: for guarantee/invariant claims, re-derive from the target (target = ? -> necessary conditions -> boundary and initial state) instead of reusing a prior formula or conclusion.
 ```
-

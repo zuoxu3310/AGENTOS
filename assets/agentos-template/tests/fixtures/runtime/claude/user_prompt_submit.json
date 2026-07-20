@@ -1,0 +1,8 @@
+{
+  "hook_event_name": "UserPromptSubmit",
+  "session_id": "__SESSION_ID__",
+  "turn_id": "__TURN_ID__",
+  "cwd": "__PROJECT__",
+  "transcript_path": "__TRANSCRIPT__",
+  "prompt": "__PROMPT__"
+}

@@ -1,4 +1,4 @@
 interface:
   display_name: "Dynamic Workflow"
-  short_description: "Run auditable AgentOS worker workflows"
-  default_prompt: "Use $dynamic-workflow to run an auditable AgentOS multi-worker workflow."
+  short_description: "Route Codex work through one workflow engine"
+  default_prompt: "Use $dynamic-workflow to return NO_DELEGATION or compile the minimum failure-mode-driven harness and execute delegated work only through the vendored Dynamic Workflow runner, with cheapest-capable models, one writer per artifact, resumable journal state, and verified promotion."

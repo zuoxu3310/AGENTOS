@@ -1,7 +1,5 @@
 # Route Keeper / Promotion Gate
 
-Date: 2026-07-01
-
 ## Purpose
 
 Route Keeper is the main thread's execution discipline. It keeps the active user object from being replaced by locally correct tool output, files, tests, reports, source gates, runtime discoveries, or subagent conclusions.
@@ -38,14 +36,47 @@ discard:
   Does not serve the task contract or increases drift risk.
 ```
 
+## Cognitive Route Protocol
+
+```text
+- Route state contains semantic nodes only: goal, decision, load-bearing
+  question, evidence, and assumption. Ordinary messages are not nodes by default.
+- Route meaning uses only these relations: refines/narrows/expands/replaces;
+  requires/unblocks; supports/weakens; explores/returns_to; contradicts/blocks.
+- Mainline admission requires both a typed effect on an accepted goal, decision,
+  or next action and present-stage necessity. An unlinked node is parked off-route;
+  topical similarity and retrospective prose are insufficient.
+- A bounded detour records its purpose and return point. A missing relation,
+  silent goal substitution, or absent present-stage necessity pauses the branch
+  and exposes the break, recommendation, and return/bounded-detour/goal-change exits.
+- A user return command immediately overrides route disagreement. The AI may state
+  one brief disagreement but may not keep the detour active.
+- Bare return performs exactly one salvage pass: carry back only nodes with an
+  explicit effect, park the rest, open no questions, continue no investigation,
+  preserve the branch, and restore the last valid focus.
+- Show a compact marker on goal change, direction-changing judgment, detour entry,
+  drift pause, route return, and user request; do not repeat it on ordinary turns.
+  It shows origin goal, accepted current goal, current activity, route reason,
+  and detour purpose/return point when applicable. Expand the node-relation table
+  only on demand.
+```
+
 ## Micro Route Checkpoint
 
 ```yaml
 route_checkpoint:
-  active_user_object:
+  route_id:
+  origin_goal_id:
+  active_goal_id:
+  focus_node_id:
+  event_type:
   artifact_or_branch:
-  does_it_change_active_user_object: yes | no | unknown
+  typed_effect:
+  present_stage_necessity:
+  route_mode: mainline | bounded_detour | drift_paused
   promotion_class: mainline | support | blocker | side_route | discard
+  marker_event:
+  return_or_salvage:
   next_action:
 ```
 
@@ -97,4 +128,3 @@ test pass:
 report done:
   A written report is completion only when the task contract makes that report the deliverable and its evidence standard is satisfied.
 ```
-

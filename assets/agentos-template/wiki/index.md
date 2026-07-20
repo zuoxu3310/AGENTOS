@@ -1,13 +1,45 @@
 # AgentOS Wiki Index
 
-This wiki stores durable project memory. Canonical AgentOS rules live in `agent-os/`; project state lives in root ledgers and wiki pages.
+This Wiki stores durable project memory. Current work state remains canonical in the four root ledgers.
 
-## Sections
+## Current Entry Points
 
-- `TASKS/`: task contracts and durable task notes
-- `CHATS/`: distilled conversation notes
-- `knowledge/`: OKF-style concept docs and reusable project knowledge
-- `raw/`: raw source manifests and ingested source notes
-- `docs/`: project documentation maintained by agents
-- `errors/`: confirmed agent mistakes and error digests
+- [Task notes](TASKS/README.md)
+- [Current plan](ledgers/PLANS.md)
+- [Current handoff](ledgers/HANDOFF.md)
+- [Knowledge method](knowledge/agentos-wiki-v2-method.md)
+- [Error rules](errors/_INDEX.md)
+- [Raw source manifest](raw/MANIFEST.md)
 
+## Managed Memory Map
+
+<!-- BEGIN AGENTOS WIKI LINKS -->
+Generated from governed Wiki files; edit source files, not this list.
+
+### CHATS
+- [CHATS/README.md](CHATS/README.md)
+
+### TASKS
+- [TASKS/README.md](TASKS/README.md)
+
+### docs
+- [docs/README.md](docs/README.md)
+
+### errors
+- [errors/_INDEX.md](errors/_INDEX.md)
+
+### knowledge
+- [knowledge/README.md](knowledge/README.md)
+- [knowledge/agentos-wiki-v2-method.md](knowledge/agentos-wiki-v2-method.md)
+
+### ledgers
+- [ledgers/DECISIONS.md](ledgers/DECISIONS.md)
+- [ledgers/HANDOFF.md](ledgers/HANDOFF.md)
+- [ledgers/PLANS.md](ledgers/PLANS.md)
+- [ledgers/PROGRESS.md](ledgers/PROGRESS.md)
+- [ledgers/README.md](ledgers/README.md)
+
+### raw
+- [raw/MANIFEST.md](raw/MANIFEST.md)
+- [raw/README.md](raw/README.md)
+<!-- END AGENTOS WIKI LINKS -->

@@ -1,0 +1,168 @@
+// Robustness test for the run viewer: generates synthetic codex-workflows runs
+// covering the shapes a real run can take, builds a viewer for each, and smoke-
+// renders it (map + tree + both themes + a drawer) in a fake DOM. No tokens, no
+// browser. Exits non-zero if any shape fails to render.
+//
+//   node test/view-run.test.js
+
+import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { execFileSync } from "node:child_process";
+
+const VIEW = new URL("../bin/view-run.js", import.meta.url).pathname;
+const ROOT = mkdtempSync(join(tmpdir(), "wf-viewtest-"));
+
+// ---- fake DOM ----
+function makeEl(tag) {
+  const el = {
+    tagName: tag, nodeType: 1, _kids: [], style: {}, className: "", scrollWidth: 0, scrollHeight: 0,
+    setAttribute() {}, setAttributeNS() {}, addEventListener() {},
+    classList: { contains: () => false, add() {}, remove() {} },
+    append(...ks) { for (const k of ks) if (k != null) this._kids.push(k); },
+    appendChild(k) { this._kids.push(k); return k; }, insertBefore(k) { this._kids.push(k); return k; },
+    querySelector() { return null; }, cloneNode() { return makeEl(tag); },
+    getBoundingClientRect() { return { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 }; },
+    remove() {},
+  };
+  Object.defineProperty(el, "textContent", { get() { return ""; }, set() { el._kids = []; } });
+  return el;
+}
+function smoke(htmlPath) {
+  const html = readFileSync(htmlPath, "utf8");
+  const m = html.match(/<script id="run-data"[^>]*>([\s\S]*?)<\/script>\s*<script>([\s\S]*?)<\/script>\s*<\/body>/);
+  if (!m) return { ok: false, err: "could not extract embedded data/app" };
+  const DATA = m[1], APP = m[2];
+  globalThis.requestAnimationFrame = (fn) => fn();
+  globalThis.window = { addEventListener() {} };
+  globalThis.document = {
+    body: makeEl("body"), createElement: (t) => makeEl(t), createElementNS: (n, t) => makeEl(t),
+    createTextNode: (s) => ({ nodeType: 3, textContent: String(s) }),
+    getElementById: (id) => (id === "run-data" ? { textContent: DATA } : makeEl("div")),
+    querySelector: () => null,
+  };
+  // Exercise both views, both themes, an agent drawer, and (when a result was
+  // persisted) the result drawer + inline Run-overview result render.
+  const exercise = `
+    ;view='tree';render();view='map';theme='light';render();theme='dark';render();
+    if(RUN.agents&&RUN.agents.length){openDrawer(RUN.agents[RUN.agents.length-1].id);closeDrawer();}
+    if(typeof openResultDrawer==='function'&&RUN.result!=null){openResultDrawer();closeDrawer();view='tree';sel={type:'run'};render();}
+    if(RUN.sessions&&RUN.sessions.length){
+      view='map';render();openSessionDrawer(RUN.sessions[0].id);closeDrawer();
+      view='tree';sel={type:'session',id:RUN.sessions[0].id};render();sel={type:'run'};render();
+    }
+    globalThis.__OUT={phases:RUN.phases.length,agents:RUN.agents.length,hasResult:RUN.result!=null,
+      sessions:(RUN.sessions||[]).length};`;
+  try {
+    new Function(APP + exercise)();
+    return { ok: true, info: globalThis.__OUT };
+  } catch (e) {
+    return { ok: false, err: (e && e.stack) || String(e) };
+  }
+}
+
+const J = (o) => JSON.stringify(o);
+const cases = [
+  { name: "flat-strings", lines: [
+    J({ key: "a#0", label: "Summarize the architecture", result: "Single-file server + dashboard." }),
+    J({ key: "b#0", label: "List the risks", result: "No tests; no auth." }),
+    J({ key: "c#0", label: "Propose next steps", result: "Add auth, tests, CI." }) ] },
+  { name: "large-fan", lines: Array.from({ length: 40 }, (_, i) =>
+    J({ key: "f" + i + "#0", label: "finder:bug-" + i, result: { issue: "#" + i, severity: ["high", "medium", "low"][i % 3] } })) },
+  { name: "pipeline-labels", lines: ["a.ts", "b.ts", "c.ts"].flatMap((f) => [
+    J({ key: "s_" + f + "#0", label: "scan:" + f, result: { findings: [{ title: "x", severity: "low" }] } }),
+    J({ key: "v_" + f + "#0", label: "verify:" + f, result: { real: true, reason: "ok" } }) ]) },
+  { name: "single", lines: [J({ key: "s#0", label: "decide",
+    result: { recommended_direction: "Ship it", why_this_wins: "simplest", hero: { headline: "go" } } })] },
+  { name: "mixed-results", lines: [
+    J({ key: "m1#0", label: "audit:obj", result: { verdict: "ok", problems: [{ issue: "a", severity: "high" }] } }),
+    J({ key: "m2#0", label: "audit:str", result: "a plain string result" }),
+    J({ key: "m3#0", label: "audit:nul", result: null }) ] },
+  // Same display label, distinct journal keys: the viewer keys agents by id, so all
+  // three must index/render separately (a label-keyed index would collapse them).
+  { name: "dup-labels", lines: [
+    J({ key: "d1#0", label: "worker", result: { n: 1 }, phase: "Work", model: "gpt-5.5", effort: "high", tokens: 10000, ms: 100 }),
+    J({ key: "d2#0", label: "worker", result: { n: 2 }, phase: "Work", model: "gpt-5.5", effort: "high", tokens: 20000, ms: 200 }),
+    J({ key: "d3#0", label: "worker", result: { n: 3 }, phase: "Work", model: "gpt-5.5", effort: "high", tokens: 30000, ms: 300 }) ] },
+  { name: "empty", lines: [] },
+  // Live run: 1 completed agent in the journal + 2 still running in the event
+  // sidecar — the viewer should merge the running agents (status:'running').
+  { name: "live",
+    lines: [J({ key: "g1#0", label: "gather:indices", result: { summary: "S&P 500 +0.4% to a record close." }, phase: "Gather", model: "gpt-5.5", effort: "high", tokens: 52000, ms: 86000 })],
+    events: [
+      J({ t: 1000, type: "start", label: "gather:indices", phase: "Gather", model: "gpt-5.5", effort: "high" }),
+      J({ t: 87000, type: "end", label: "gather:indices", phase: "Gather" }),
+      J({ t: 1000, type: "start", label: "gather:movers", phase: "Gather", model: "gpt-5.5", effort: "high" }),
+      J({ t: 1000, type: "start", label: "gather:macro", phase: "Gather", model: "gpt-5.5", effort: "high" }),
+    ],
+    // a running agent mid-stream — the drawer should render its partial output
+    progress: { "gather:macro": "Pulling the latest macro print and comparing to consensus…" } },
+  // Per-agent metric fields the runtime now persists (phase/model/effort/tokens/ms)
+  // — the viewer should read them straight from the journal, no script needed.
+  { name: "enriched", lines: [
+    J({ key: "e1#0", label: "scan:auth", result: { findings: [{ title: "missing check", severity: "high" }] },
+      phase: "Scan", model: "gpt-5.5", effort: "high", tokens: 412000, tokensOut: 90000, ms: 5300 }),
+    J({ key: "e2#0", label: "scan:routes", result: { findings: [] },
+      phase: "Scan", model: "gpt-5.5", effort: "high", tokens: 308000, tokensOut: 61000, ms: 4100 }),
+    J({ key: "e3#0", label: "consolidate", result: { summary: "one real issue" },
+      phase: "Report", model: "gpt-5.5", effort: "xhigh", tokens: 980000, tokensOut: 210000, ms: 21000 }) ] },
+  // Persisted workflow result (the *.result.json sidecar): the viewer should show
+  // the honest return value (result node → result drawer, Run overview inline).
+  { name: "with-result",
+    lines: [
+      J({ key: "c1#0", label: "critique:web-ux", result: { verdict: "ok" }, phase: "Critique" }),
+      J({ key: "c2#0", label: "critique:perf", result: { verdict: "ok" }, phase: "Critique" }),
+      J({ key: "s1#0", label: "synthesize:plan", result: { headline: "do X" }, phase: "Synthesize" }) ],
+    result: { headline: "Ship the state-preserving live viewer first",
+      prioritized_changes: [{ change: "kill meta refresh", impact: "high", effort: "M" }],
+      quick_wins: ["atomic writes", "ticking elapsed"] } },
+  // Sessionful workers: turn agents (sess:<id>#<turn> keys, session meta) must
+  // group into RUN.sessions worker rollups — one map node per worker, a per-turn
+  // timeline in the drawer, cancelled race losers rendered distinctly, and a
+  // still-running steer (events) folded into its worker with streaming progress.
+  { name: "sessionful", lines: [
+    J({ key: "sess:s1#0", label: "oracle", result: { summary: "Repo ingested." }, phase: "Explore", model: "gpt-5.5", effort: "high", tokens: 52000, ms: 86000, session: true, sessionId: "s1", turn: 0, status: "completed", threadId: "th-1" }),
+    J({ key: "sess:s1#1", label: "oracle", result: { summary: "Auth flows traced." }, phase: "Explore", model: "gpt-5.5", effort: "high", tokens: 30000, ms: 40000, session: true, sessionId: "s1", turn: 1, status: "completed", threadId: "th-1" }),
+    J({ key: "sess:s2#0", label: "rival", result: null, phase: "Explore", model: "gpt-5.5", effort: "high", tokens: 12000, ms: 20000, session: true, sessionId: "s2", turn: 0, status: "cancelled", threadId: "th-2" }),
+    J({ key: "j#0", label: "judge:final", result: { one_line_verdict: "Oracle wins." }, phase: "Judge", model: "gpt-5.5", effort: "xhigh", tokens: 90000, ms: 60000 }) ],
+    events: [
+      J({ t: 1000, type: "start", id: "sess:s1#2", label: "oracle", phase: "Explore", model: "gpt-5.5", effort: "high", kind: "session", sessionId: "s1", turn: 2 }),
+    ],
+    progress: { "sess:s1#2": "Now writing the exact fix…" } },
+  { name: "scripted-pipeline", lines: ["x.ts", "y.ts"].flatMap((f) => [
+    J({ key: "s_" + f + "#0", label: "scan:" + f, result: { findings: [] } }),
+    J({ key: "v_" + f + "#0", label: "verify:" + f, result: { real: false, reason: "clean" } }) ]),
+    script:
+      "export const meta={name:'mini-review',description:'scan then verify',phases:[{title:'Scan'},{title:'Verify'}]}\n" +
+      "phase('Scan')\n" +
+      "const r=await pipeline(args.files,(f)=>agent('scan '+f,{label:`scan:${f}`,phase:'Scan',model:'gpt-5.5',effort:'high'}),\n" +
+      "  (res,f)=>agent('verify '+f,{label:`verify:${f}`,phase:'Verify',model:'gpt-5.4',effort:'low'}))\nreturn r" },
+];
+
+let failed = 0;
+for (const c of cases) {
+  const dir = join(ROOT, c.name), jdir = join(dir, ".workflow-journal");
+  mkdirSync(jdir, { recursive: true });
+  writeFileSync(join(jdir, c.name + ".workflow.jsonl"), c.lines.join("\n"));
+  if (c.events) writeFileSync(join(jdir, c.name + ".workflow.events.jsonl"), c.events.join("\n"));
+  if (c.script) writeFileSync(join(dir, c.name + ".workflow.js"), c.script);
+  if (c.result !== undefined) writeFileSync(join(jdir, c.name + ".workflow.result.json"), JSON.stringify(c.result));
+  if (c.progress) writeFileSync(join(jdir, c.name + ".workflow.progress.json"), JSON.stringify(c.progress));
+  const out = join(ROOT, c.name + ".html");
+  let r;
+  try {
+    execFileSync("node", [VIEW, dir, "--out", out], { stdio: ["ignore", "ignore", "pipe"] });
+    r = smoke(out);
+  } catch (e) {
+    r = { ok: false, err: "generate failed: " + ((e.stderr && e.stderr.toString()) || e.message) };
+  }
+  if (r.ok) {
+    console.log(`  ✓ ${c.name.padEnd(18)} phases=${r.info.phases} agents=${r.info.agents}${r.info.sessions ? ` workers=${r.info.sessions}` : ""}${r.info.hasResult ? " · result✓" : ""}`);
+  } else {
+    failed++;
+    console.error(`  ✗ ${c.name}: ${String(r.err).slice(0, 300)}`);
+  }
+}
+rmSync(ROOT, { recursive: true, force: true });
+if (failed) { console.error(`\nview-run robustness: ${failed} shape(s) FAILED`); process.exit(1); }
+console.log("\nview-run robustness: all shapes render ✓");

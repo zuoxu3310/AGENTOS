@@ -1,0 +1,8 @@
+{
+  "hook_event_name": "SessionStart",
+  "source": "compact",
+  "session_id": "__SESSION_ID__",
+  "conversation_id": "__SESSION_ID__",
+  "cwd": "__PROJECT__",
+  "transcript_path": "__TRANSCRIPT__"
+}

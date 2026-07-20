@@ -1,121 +1,86 @@
 # Task Contract
 
-Date: 2026-07-01
-
 ## Purpose
 
-Task Contract fixes the task target before execution and protects it during tools, files, subagents, reports, context compression, and handoff.
+Task Contract states what the user must receive before work starts, keeps long
+tasks intact across messages and compression, and makes the AI stop at the
+finish line.
 
-Use it after Reasoning Base and Intent-Causal Gate.
+## Choose The Smallest Contract
 
-## When To Use
+A short, clear, single-result task uses one implicit finish sentence and no
+state file. Use persistent `active_work` when the task crosses user messages,
+contains several work segments or finish conditions, may be compressed or
+delegated, or otherwise needs recovery.
 
-Use a full Task Contract for non-small tasks:
+Do not create persistent state merely because several tools are useful. Several
+tools can belong to one work segment with one purpose, expected result, and stop
+condition held in the current model context.
 
-```text
-- multi-step work
-- file edits with user-visible consequences
-- agent behavior, root-cause, audit, strategy, or product meaning work
-- work that may use subagents or many tools
-- work where support artifacts can be mistaken for completion
-- work likely to survive context compression or handoff
-```
+## Long-Task State
 
-Skip the full contract for tiny, clear, reversible tasks. Use the micro contract instead.
-
-## Core Rules
-
-```text
-- Form a Task Contract before planning, delegation, tool-heavy work, or file edits on non-small tasks.
-- Pin active user object, user-visible success, requested layer, deliverable, invariants, forbidden substitutions, evidence standard, autonomy, ask-required conditions, and handoff minimum state.
-- Keep the contract short enough to preserve execution focus.
-- Tests, files, scripts, plans, reports, source gates, runtime checks, and subagent reports are support artifacts unless the contract explicitly makes them the deliverable.
-- Completion requires evidence that the active user object changed or became usable to the user.
-- If execution discovers that the contract is wrong or incomplete, stop promotion to mainline and update the contract before continuing.
-```
-
-## Micro Contract
+Each runtime session owns one local JSON state file under
+`agent-os/state/active-work/`:
 
 ```yaml
-task_contract_micro:
-  active_user_object:
-  deliverable:
-  forbidden_substitution:
-  evidence_standard:
-  per_turn_audit_reported: required (append agent-os/state/audit-log.md + report block in answer)
+active_work:
+  goal: one sentence describing the result the user must receive
+  done_when:
+    - observable, falsifiable finish condition
+  open_items:
+    - unfinished work required by done_when
+  next_action: an exact member of open_items, or empty when none is actionable
+  latest_user_delta: what the latest real user message changed
+  status: active | blocked | done
+  blocker: filled only when blocked
+  report_state: not_due | pending | delivered
+  completion:
+    - condition: exact string from done_when
+      evidence:
+        - file, command result, runtime observation, or other direct evidence
 ```
 
-## Full Task Contract
+## Rules
 
-```yaml
-task_contract:
-  active_user_object:
-    description:
-    why_it_matters:
+- `open_items` may contain only work required by `done_when`.
+- `next_action` must be a real open item while work is active.
+- A new user message changes only what it actually addresses. Preserve every
+  unaffected finish condition and open item.
+- State restored after startup, resume, clear, or compression preserves
+  attention, not execution authority.
+- The current work segment is not another file or event graph. Several tools
+  may run inside it without repeated reminders.
+- Do not call a task done until every `done_when` condition appears exactly once
+  in `completion` with relevant evidence, `open_items` is empty, and no blocker
+  remains.
+- When done, do not add more work. Verify, set `report_state: pending`, deliver,
+  and stop. Reopen work only when new evidence or a later user message creates a
+  real obligation.
+- When blocked, record the blocker and set `report_state: pending` if a formal
+  user report is due.
+- Hooks do not decide whether a task is long, what the goal means, or whether a
+  user message changes it. The main model and task skills make those judgments.
 
-  user_visible_success:
-    description:
-    how_user_can_tell:
+## Evidence Boundary
 
-  requested_layer:
-    layer: conversation | document | code | runtime | research | workflow | policy | memory | other
-    notes:
+Tests, files, plans, reports, source gates, and worker reports are support
+artifacts unless the user asked for them. Evidence must prove the corresponding
+finish condition, not merely that work happened.
 
-  deliverable:
-    primary:
-    format:
-    location:
-
-  non_substitutable_invariants:
-    - invariant:
-      reason:
-
-  forbidden_substitutions:
-    - proxy:
-      why_forbidden:
-
-  evidence_standard:
-    required_evidence:
-    insufficient_evidence:
-
-  autonomy:
-    agent_may_decide:
-    must_ask_user_before:
-
-  ask_required_when:
-    - condition:
-      why_it_changes_route:
-
-  handoff_min_state:
-    active_user_object:
-    current_route:
-    completed_evidence:
-    open_blockers:
-    forbidden_substitutions:
-    next_safe_action:
-```
-
-## Handoff Minimum
-
-If interrupted, preserve:
-
-```yaml
-handoff_min_state:
-  active_user_object:
-  task_contract:
-  current_route:
-  completed_evidence:
-  open_blockers:
-  forbidden_substitutions:
-  next_safe_action:
-```
-
-## Completion Link
-
-Before completion wording, run:
+Before completion wording, use:
 
 ```text
 agent-os/review/completion-gate.md
 agent-os/review/evidence-to-claim-gate.md
 ```
 
+## Delivery Boundary
+
+For a finished or blocked long task, the first Stop continues the same main
+model once. Recheck whether the task is actually done, what the user received,
+what remains, and what the user must decide or do. Then remove avoidable jargon,
+translation-like wording, internal process detail, and filler without hiding a
+risk, boundary, or unfinished item.
+
+Short replies are delivered on the first generation unless later live tests
+show a real need for a different rule.

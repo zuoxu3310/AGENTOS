@@ -1,46 +1,31 @@
 # AgentOS
 
-> AgentOS is a repo-local operating system for AI coding agents. You install one
-> `agent-os/` kernel into any project and every agent that works there — Claude Code,
-> OpenAI Codex, or any AGENTS.md-aware runtime — inherits the same enforced discipline:
-> a hook-enforced per-turn audit trail, review gates against sycophancy and unsupported
-> claims, task contracts, route keeping, and a durable memory system. The rules live
-> once in the kernel; thin adapters project them into each runtime.
+AgentOS is a repo-local operating layer for Codex and Claude Code. It keeps work centered on the user's real result, explicit finish conditions, matching evidence, plain-language delivery, and selective project memory.
 
-AgentOS treats agent reliability as an operating-system problem, not a prompting
-problem. `AGENTS.md` and `CLAUDE.md` are advisory instructions an agent may ignore;
-AgentOS converts the highest-value invariants into mechanism. The signature mechanism is
-a Stop hook that blocks a turn from ending until the agent has appended a well-formed,
-uniquely-numbered entry to `agent-os/state/audit-log.md`. It is runtime-agnostic,
-dependency-free (Python 3 only), non-destructive on install, and licensed Apache-2.0.
+Core boundary:
+- The main model and reusable skills perform semantic judgment.
+- Hooks restore attention or check deterministic runtime facts.
+- Hooks do not classify user intent, action importance, route correctness, or answer quality.
 
-Key facts:
-- Kernel vs. adapters: `agent-os/` is the single canonical source of rules; `AGENTS.md`,
-  `CLAUDE.md`, `.claude/`, `.codex/`, and `.agents/` are adapters that point back to it.
-- Enforcement is layered: hooks mechanically enforce the audit trail's existence/format,
-  the kernel's structure (`aos-lint.py`), and an edit guard on the enforcement layer.
-  The review gates are routed by the rules card, not hook-forced.
-- Honest scope: the hooks enforce structure, format, and numbering — not truthfulness or
-  quality. `aos-lint` proves structure only.
-- Supported runtimes: Claude Code and OpenAI Codex get full hook enforcement; other
-  AGENTS.md-aware agents inherit the rules card, gates, and workflows.
+Runtime flow:
+1. SessionStart restores the current long-task goal, finish conditions, open items, and next action.
+2. UserPromptSubmit asks the model to reinterpret every real user message.
+3. PreToolUse guards only deterministic boundaries such as Codex's single delegated workflow backend and worker-prompt structure.
+4. PostToolUse lints governed files only after structured edits.
+5. Stop gives a completed or blocked long-task delivery one same-model reread; short replies are not forced through it.
 
-## Docs
+Canonical sources:
+- `assets/agentos-template/agent-os/rules-card.md`: resident behavior.
+- `assets/agentos-template/agent-os/review/task-contract.md`: long-task finish line and state.
+- `assets/agentos-template/agent-os/workflows/agent-execution-lifecycle.md`: execution and delivery lifecycle.
+- `assets/agentos-template/agent-os/memory/routing.md`: memory operating contract.
+- `assets/agentos-template/agent-os/adapters/codex-workflow.md`: Codex Dynamic Workflow boundary.
 
-- [README](https://github.com/zuoxu3310/AGENTOS/blob/main/README.md): full overview, install, architecture, FAQ.
-- [Quickstart](https://github.com/zuoxu3310/AGENTOS/blob/main/docs/QUICKSTART.md): install and validate in three commands.
-- [Architecture](https://github.com/zuoxu3310/AGENTOS/blob/main/docs/ARCHITECTURE.md): the kernel/adapter/hook layers in depth.
-- [Installer skill manifest](https://github.com/zuoxu3310/AGENTOS/blob/main/SKILL.md): how the installer skill is triggered and what it does.
+Install:
+`python3 scripts/install-agentos.py /path/to/project`
 
-## Concepts
+Validate:
+`python3 scripts/validate-agentos-install.py /path/to/project`
+`python3 /path/to/project/agent-os/tools/aos-lint.py`
 
-- [The kernel](https://github.com/zuoxu3310/AGENTOS/tree/main/assets/agentos-template/agent-os): rules, routing, review gates, workflows, state, memory, tools.
-- [Review gates](https://github.com/zuoxu3310/AGENTOS/tree/main/assets/agentos-template/agent-os/review): task-contract, anti-sycophancy, minimal-code, evidence-to-claim, reasoning-causality, intent-causal, route-keeper/promotion, prompt-craft, per-turn-audit, completion.
-- [Workflows](https://github.com/zuoxu3310/AGENTOS/tree/main/assets/agentos-template/agent-os/workflows): agent-execution-lifecycle, dynamic-workflow, fusion-workflow.
-- [Enforcement hooks](https://github.com/zuoxu3310/AGENTOS/tree/main/assets/agentos-template/.claude/hooks): SessionStart, UserPromptSubmit, Stop, PreToolUse, PostToolUse.
-
-## Meta
-
-- [License (Apache-2.0)](https://github.com/zuoxu3310/AGENTOS/blob/main/LICENSE)
-- [How to cite](https://github.com/zuoxu3310/AGENTOS/blob/main/CITATION.cff)
-- [Contributing](https://github.com/zuoxu3310/AGENTOS/blob/main/CONTRIBUTING.md)
+Validation proves structure only. Hook activation must be observed in a fresh trusted runtime session.

@@ -1,125 +1,68 @@
 # AgentOS Architecture
 
-AgentOS is built on one idea: **keep the rules in a single canonical kernel, and let thin
-adapters activate them inside each agent runtime.** This document explains the layers.
+## The control loop
 
-## The three layers
+AgentOS implements one loop:
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ ENFORCEMENT LAYER  (mechanical)                              │
-│   .claude/hooks/  ·  .codex/hooks/  ·  agent-os/tools/aos-lint│
-│   SessionStart · UserPromptSubmit · Stop · PreToolUse · Post  │
-└─────────────────────────────────────────────────────────────┘
-             ▲ activates / verifies
-┌─────────────────────────────────────────────────────────────┐
-│ ADAPTER LAYER  (projection)                                  │
-│   AGENTS.md · CLAUDE.md · rules cards · skill wrappers        │
-│   .claude/ · .codex/ · .agents/                              │
-└─────────────────────────────────────────────────────────────┘
-             ▲ points back to
-┌─────────────────────────────────────────────────────────────┐
-│ KERNEL LAYER  (canonical, runtime-agnostic)                  │
-│   agent-os/  — rules · routing · review · workflows ·         │
-│               memory · state · tools                         │
-└─────────────────────────────────────────────────────────────┘
+```text
+understand and set a finish line
+    → execute within the accepted scope
+    → verify each finish condition
+    → stop and deliver clearly
+    → preserve only useful memory
 ```
 
-### 1. Kernel layer — `agent-os/`
+The main model owns interpretation and judgment. A reusable skill may help it reason, review evidence, route memory, or compile a workflow. Hooks are deliberately narrower because a mechanical program cannot reliably infer product meaning from a command string or tool name.
 
-The single source of truth. Nothing in the kernel is runtime-specific.
+## Runtime boundaries
 
-| Path | Role |
-|---|---|
-| `boot.md` | Minimum startup: what an agent reads first |
-| `router.md` | Routes a task to the right gates, workflows, and skills |
-| `review/` | The decision procedures (gates): task-contract, intent-causal, anti-sycophancy, minimal-code, reasoning-base, evidence-to-claim, route-keeper/promotion, prompt-craft, per-turn-audit, completion |
-| `workflows/` | Agent execution lifecycle, dynamic (multi-worker) workflow, fusion (multi-model) workflow |
-| `memory/` | Routing rules, wiki-v2 method, error-learning, bootstrap, sync-audit |
-| `adapters/` | Cross-runtime standards: runtime-visibility, skill-parity |
-| `state/` | Live per-turn state: `audit-log.md`, `current.md` (seeded once, then owned by the project) |
-| `tools/aos-lint.py` | Structural linter for the kernel |
+### SessionStart
 
-### 2. Adapter layer — projections
+On startup, resume, clear, or compaction recovery, it injects only the current long-task goal, finish conditions, open items, next action, latest user change, and state path.
 
-Each runtime has an entry file and a resident "rules card" that point back into the
-kernel instead of duplicating it.
+### UserPromptSubmit
 
-- **Claude Code:** `CLAUDE.md` + `.claude/rules/agentos-local-rules.md` (auto-injected
-  each session) + `.claude/skills/` wrappers.
-- **Codex / generic:** `AGENTS.md` + `.codex/agentos-local-rules.md` + `.agents/skills/`
-  wrappers (with Codex `agents/openai.yaml` metadata where needed).
+For every real user message, it reminds the main model to reinterpret the request. Internal Stop continuations are marked and do not masquerade as new user work.
 
-The **skill-parity** standard keeps the same capability available under each runtime's
-skill format; the **runtime-visibility** standard defines when a workflow worker is
-visible enough to be auditable.
+### PreToolUse
 
-### 3. Enforcement layer — hooks + lint
+It performs only deterministic checks: Codex delegation must use the vendored Dynamic Workflow runner, worker prompts must contain the required XML structure, and structured tools may be denied when they explicitly name a forbidden target. It does not parse shell text to guess whether a command is important or mutating.
 
-Hooks turn the highest-value invariants from prose into mechanism. They are **fail-open**
-(a broken hook becomes a no-op) and enforce existence/format/structure only.
+### PostToolUse
 
-| Hook event | File | What it does |
-|---|---|---|
-| SessionStart | `aos_session_start.py` | Injects the rules card + dynamic state (next audit number, current object) |
-| UserPromptSubmit | `aos_prompt_baseline.py` | Records the per-turn audit baseline |
-| Stop | `aos_stop_gate.py` | Blocks the turn until a well-formed, uniquely-numbered audit entry exists beyond the baseline |
-| PreToolUse | `aos_guard_enforcer.py` | Asks before edits to the enforcement layer; denies edits to the script-owned metrics log |
-| PostToolUse | `aos_kernel_lint.py` | Re-runs `aos-lint` after any `agent-os/**` edit and feeds failures back |
+It stays silent for ordinary tools. A structured edit to AgentOS, the Wiki, or a governed root ledger runs the relevant linter and returns only mechanical failures.
 
-Claude Code wires these via `.claude/settings.json`; Codex wires them via
-`.codex/hooks.json` when the project `.codex/` layer is trusted.
+### Stop
 
-## The per-turn audit invariant
+When a long task is complete or blocked and `report_state` is `pending`, Stop asks the same main model for one delivery reread. The second Stop releases the answer and records `delivered`. Short replies have no mandatory second generation.
 
-The load-bearing guarantee AgentOS *can* make mechanically:
+## Long-task state
 
-> A turn cannot finish until `agent-os/state/audit-log.md` has gained a well-formed,
-> uniquely-numbered entry beyond the turn's baseline.
+Long work uses one session-local `active_work` record with:
 
-An entry is:
+- a one-sentence goal;
+- observable `done_when` conditions;
+- only the `open_items` needed to reach those conditions;
+- a `next_action` that names an open item;
+- the latest user correction;
+- active, blocked, or done status;
+- report state;
+- condition-by-condition evidence.
 
-```
-## <n> (<sid>) — <one-line label>
-- object:
-- contract:
-- action+evidence:
-- status:
-- gates:
-- intent:
-```
+Several tools can serve one work segment. The system does not build an event graph or repeat the goal before every tool call. Once all conditions have evidence and no open item or blocker remains, additional “helpful” optimization is outside the contract.
 
-The Stop hook checks: (1) THIS session appended a new entry (the `(<sid>)` tag lets
-concurrent sessions share one log; cross-session number collisions are legal and only a
-session's own numbers must strictly increase, append-only); (2) all six fields are
-present, the gates line disposes every review gate, and on real-instruction turns the
-intent line quotes the user verbatim (substring of the turn-opening message group;
-harness injections never count as the user's words); (3) replies over 1200 characters
-carry a `- restate:` line evidencing the zero-context restate test. It blocks
-up to a bounded number of retries, then fails open and records a `missed` row in the
-script-owned `compliance-log.tsv` so misses are **measurable instead of silent**.
+## Canonical rules and projections
 
-The transcript scan that checks for a *visible* audit block is advisory only (recorded,
-never blocking) because transcript flushing races the Stop event.
+`agent-os/rules-card.md` is the only resident AgentOS rule body. The installer generates the AgentOS-managed block in `AGENTS.md` and creates Claude's native rules projection. Runtime configuration contains activation details, not another rule source.
 
-## What is enforced vs. routed
+## Workflows
 
-| Concern | Mechanism |
-|---|---|
-| Audit trail exists and is well-formed | **Hook-enforced** (Stop) |
-| Kernel structure is intact | **Hook-enforced** (`aos-lint` on edit) + CI |
-| Enforcement layer isn't edited by accident | **Hook-enforced** (PreToolUse guard) |
-| Anti-sycophancy, minimal-code, evidence-to-claim, reasoning, intent, route, prompt-craft | **Routed** by the rules card (prompt layer) |
+Codex chooses direct work (`NO_DELEGATION`) or delegates through `vendor/claude-dynamic-workflows-codex`. That vendored runner is the only delegated execution engine. Claude uses its native Workflow and does not load the Codex adapter.
 
-This split is deliberate: mechanize what can be proven, and make the rest explicit and
-routed rather than pretending a judgment gate is a hard guarantee.
+## Memory
 
-## Design invariants
+The four root ledgers answer distinct questions: current plan, verified progress, durable decisions, and current handoff. The Wiki stores selectively loaded task notes, distilled chats, reusable knowledge, raw-source provenance, and confirmed error learning. Existing project memory belongs to the project and is preserved during updates.
 
-- **One kernel, many adapters.** Never maintain a rule in more than one place.
-- **Fail open.** Enforcement must never brick a working session.
-- **Non-destructive install.** Merge or back up; never silently overwrite user state.
-- **Seed-once live state.** `agent-os/state/` and `wiki/` are seeded on first install and
-  preserved forever after, so upgrades never wipe the audit log or knowledge base.
-- **Honest scope.** `aos-lint` proves structure only; the hooks prove format and
-  existence — not truthfulness.
+## Evidence boundary
+
+Automated checks can prove file structure, projections, hook response shapes, state validation, and observed test behavior. They cannot prove that a model understood the user correctly or that a real runtime trusted a changed hook. Those claims require live session evidence.

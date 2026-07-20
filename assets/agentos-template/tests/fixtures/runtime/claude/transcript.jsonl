@@ -1,0 +1,2 @@
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"__PROMPT__"}]}}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"__TRANSCRIPT_ANSWER__"}]}}

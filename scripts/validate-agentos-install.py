@@ -40,12 +40,18 @@ EXTRA_REQUIRED_FILES = [
     "agent-os/skills/seat-skills.json",
     "agent-os/tools/aos_skill_receipt.py",
     "tests/unit/test_skill_receipt.py",
-    "vendor/fusion-fable/skills/fusion/SKILL.md",
-    "vendor/AgentChat/skills/AgentChat-FreeSubAgent/SKILL.md",
     ".claude/skills/fusion-workflow/scripts/run_gemini_cli.sh",
     ".claude/skills/fusion-workflow/scripts/run_codex_sandboxed.sh",
     ".claude/skills/fusion-workflow/references/panelist-prompt-template.md",
     ".claude/skills/fusion-workflow/references/judge-prompt-template.md",
+]
+
+
+# Third-party add-ons vendored as their own git checkouts (git-ignored in the
+# published template). Missing copies are reported, never a failure.
+OPTIONAL_VENDOR_FILES = [
+    "vendor/fusion-fable/skills/fusion/SKILL.md",
+    "vendor/AgentChat/skills/AgentChat-FreeSubAgent/SKILL.md",
 ]
 
 
@@ -253,6 +259,7 @@ def validate(target: Path) -> dict:
     required_files = target_lint_required_files(target) or FALLBACK_CORE_FILES
     required_files = list(dict.fromkeys([*required_files, *EXTRA_REQUIRED_FILES]))
     missing_files = [p for p in required_files if not (target / p).is_file()]
+    missing_optional_vendor = [p for p in OPTIONAL_VENDOR_FILES if not (target / p).is_file()]
     missing_dirs = [p for p in REQUIRED_DIRS if not (target / p).is_dir()]
     unexpected_runs = [str(p.relative_to(target)) for p in (target / "work").glob("**/runs") if p.is_dir()]
 
@@ -282,6 +289,7 @@ def validate(target: Path) -> dict:
         "status": "passed" if passed else "failed",
         "target": str(target),
         "missing_files": missing_files,
+        "missing_optional_vendor": missing_optional_vendor,
         "missing_dirs": missing_dirs,
         "claude_hook_wiring": claude_hooks,
         "codex_hook_wiring": codex_hooks,

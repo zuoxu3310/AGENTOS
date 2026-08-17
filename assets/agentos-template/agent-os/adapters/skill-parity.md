@@ -34,12 +34,16 @@ Codex skills may include `agents/openai.yaml`. Claude skills must not depend on 
 | Route Keeper / Promotion Gate | `agent-os/review/route-keeper-promotion-gate.md` | `.agents/skills/route-promotion-review/SKILL.md` | `.claude/skills/route-promotion-review/SKILL.md` | present |
 | Evidence + Completion Gate | `agent-os/review/evidence-to-claim-gate.md`, `agent-os/review/completion-gate.md` | `.agents/skills/evidence-claim-review/SKILL.md` | `.claude/skills/evidence-claim-review/SKILL.md` | present |
 | Agent Execution Lifecycle | `agent-os/workflows/agent-execution-lifecycle.md` | `.agents/skills/lifecycle-execution/SKILL.md` | `.claude/skills/lifecycle-execution/SKILL.md` | present |
-| Worker routing / recovery | `agent-os/adapters/codex-workflow.md`, `agent-os/adapters/runtime-visibility.md` | `.agents/skills/dynamic-workflow/SKILL.md` | Claude native Workflow + Superpowers; no local wrapper | intentional runtime difference |
+| Worker routing / recovery | `agent-os/adapters/codex-workflow.md`, `agent-os/adapters/runtime-visibility.md` | Desktop threads via `codex_app.create_thread`; `.codex/agents/*.toml` instructions | `.claude/agents/*.md` + native Workflow | same chain, runtime-specific transport |
 | Memory + Wiki routing | `agent-os/memory/bootstrap.md`, `agent-os/memory/routing.md`, `agent-os/memory/sync-audit.md`, `agent-os/memory/wiki-v2.md` | `.agents/skills/memory-wiki-routing/SKILL.md` | `.claude/skills/memory-wiki-routing/SKILL.md` | added |
 | Anti-Sycophancy Gate | `agent-os/review/anti-sycophancy-gate.md` | `.agents/skills/anti-sycophancy-review/SKILL.md` | `.claude/skills/anti-sycophancy-review/SKILL.md` | added |
 | Minimal Code Gate | `agent-os/review/minimal-code-gate.md` | `.agents/skills/minimal-code-review/SKILL.md` | `.claude/skills/minimal-code-review/SKILL.md` | added |
-| Internal Turn Log Gate | `agent-os/review/per-turn-audit-gate.md` | Codex Stop hook | Claude Stop hook | present |
+| Engineering Gate | `agent-os/review/engineering-gate.md` | `.agents/skills/engineering-plan-review/SKILL.md` | `.claude/skills/engineering-plan-review/SKILL.md` | added |
 | Prompt Craft Gate | `agent-os/review/prompt-craft-gate.md` | `.agents/skills/prompt-craft-review/SKILL.md` | `.claude/skills/prompt-craft-review/SKILL.md` | added |
+| Delivery Gate | `agent-os/review/delivery-gate.md` | `.agents/skills/delivery-review/SKILL.md` | `.claude/skills/delivery-review/SKILL.md` | added |
+| Cognition workflow + five seat workflows | `agent-os/workflows/{cognition,zhongshu,menxia,shangshu,executor,yushi}.md` | chain wiring (`.codex/agents/*.toml` + `.codex/hooks/aos_chain_gate.py`) | chain wiring (seat contracts in `.claude/agents/`) | chain-constitutive; no shell by design — seats read them at birth |
+| Delivery-recheck Stop discipline | machine layer (`.codex/hooks/aos_stop_gate.py`, `.claude/hooks/aos_stop_gate.py`) | Codex Stop hook | Claude Stop hook | hook parity, no kernel gate document |
+| Chain entry (relay / 太监) | `agent-os/adapters/codex-workflow.md`, `agent-os/workflows/zhongshu.md` | `.agents/skills/agentos/SKILL.md` (user-invoked `$agentos`) | `.claude/skills/agentos/SKILL.md` (user-invoked `/agentos`) | added; opt-in entry, courier only |
 | Fusion Workflow | `agent-os/workflows/fusion-workflow.md` | `.agents/skills/fusion-workflow/SKILL.md` | `.claude/skills/fusion-workflow/SKILL.md` | added |
 
 ## Support Skills
@@ -57,5 +61,10 @@ Shared-skill parity requires:
 - Claude skill validates with Claude skill-creator quick_validate.py
 - Codex-only `agents/openai.yaml` stays under .agents/skills
 - Claude skills do not require Codex openai.yaml
+- `agent-os/skills/seat-skills.json` maps every chain role to required native skills
+- `aos_skill_receipt.py` records runtime, skill names, and exact SKILL.md hashes;
+  the chain hook rejects phase work without a matching receipt
+- a receipt proves the configured files were loaded and hashed in that seat
+  session; it does not prove the model understood or correctly applied them
 - a runtime-specific adapter has no duplicate wrapper in the other runtime
 ```

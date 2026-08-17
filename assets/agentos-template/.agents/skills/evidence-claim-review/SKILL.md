@@ -12,8 +12,6 @@ Thin Codex adapter for the repo-local Agent OS kernel.
 Read:
 
 ```text
-agent-os/boot.md
-agent-os/router.md
 agent-os/review/evidence-to-claim-gate.md
 agent-os/review/completion-gate.md
 ```
@@ -29,9 +27,12 @@ evidence_claim_review:
   claim:
   claim_type:
   evidence_source:
+  evidence_layer:
+  support_type:
   evidence_strength:
   allowed_wording:
   downgrade_or_remove:
+  completion_status:   # completion claims run the completion-gate template
 ```
 
 Do not copy kernel text into this wrapper.

@@ -15,6 +15,7 @@ initial scaffold       agent-os/memory/bootstrap.md
 knowledge concept      agent-os/memory/wiki-v2.md
 stage closeout         agent-os/memory/sync-audit.md
 error record           agent-os/memory/error-learning.md
+accepted exemplar      agent-os/memory/exemplars.md
 ```
 
 ## Route

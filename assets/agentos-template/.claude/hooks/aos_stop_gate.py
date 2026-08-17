@@ -38,6 +38,8 @@ def main() -> int:
     root = aos.project_root(data)
     if not (root / "agent-os").is_dir():
         return 0
+    if not aos.chain_binding(root, "claude", data):
+        return 0
     module, path, active_work, problems = aos.active_work_state(root, "claude", data)
     if not active_work or active_work.get("report_state") != "pending":
         return 0

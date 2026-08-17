@@ -1,0 +1,4 @@
+interface:
+  display_name: "Delivery Review"
+  short_description: "Shape a user-facing delivery by the delivery gate"
+  default_prompt: "Use $delivery-review to fix the delivery's goal, lead with the conclusion and data, and pick the matching formula before writing a user-facing report."

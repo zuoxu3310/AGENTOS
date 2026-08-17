@@ -23,9 +23,9 @@ It prevents the Agent from treating AgentOS, tools, files, workflows, subagents,
 - Do not let "ask less" become guessing: investigate available facts, teach blind spots, build variants, request a reference, or state a safe reversible default. At high unknown density, guessing is not legitimized by stating assumptions.
 - Run Proxy Risk Gate before promoting any tool/file/report/subagent result to mainline.
 - Every substantive judgment already records an independent conclusion, basis,
-  and change condition. Use `agent-os/review/anti-sycophancy-gate.md` only when
-  the user explicitly requests adversarial framing review or when a contested,
-  high-risk frame needs tools beyond that normal judgment record.
+  and change condition. De-anchoring from the asker's framing follows
+  `agent-os/review/anti-sycophancy-gate.md` under that gate's own trigger
+  section.
 - Question shaping check before execution: if the question mixes emotional content with an analysis request, split them and handle separately; rewrite negation-style lookups ("which X are not Y") into positive form before searching; if the question's shape would systematically bias the answer, surface that to the user before proceeding.
 ```
 
@@ -110,35 +110,7 @@ independent_batch:
 
 ## Proxy Risk Gate
 
-Run before treating any artifact or branch as mainline progress.
-
-```yaml
-proxy_risk_gate:
-  artifact_or_branch:
-  artifact_type: tool_output | file | report | test | source_gate | runtime | subagent_report | template | plan | other
-  supports_active_object:
-  could_be_mistaken_for_completion:
-  promotion_status: mainline | support | blocker | side_route | discard
-  promotion_reason:
-  user_visible_change:
-  forbidden_substitution_check:
-```
-
-Promotion classes:
-
-```text
-mainline:
-  Directly changes or proves progress toward active_user_object.
-
-support:
-  Helps mainline but cannot be delivered as success.
-
-blocker:
-  Must be resolved before active_user_object can be achieved.
-
-side_route:
-  Locally useful but not needed for the active object.
-
-discard:
-  Does not serve the active object or increases drift risk.
-```
+Run before treating any artifact or branch as mainline progress. The single
+canonical template and promotion classes are the Promotion Gate in
+`agent-os/review/route-keeper-promotion-gate.md`; run it there — this
+section is a pointer, not a second template.

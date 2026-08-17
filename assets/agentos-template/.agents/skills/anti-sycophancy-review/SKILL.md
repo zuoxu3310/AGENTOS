@@ -1,6 +1,6 @@
 ---
 name: anti-sycophancy-review
-description: Optional adversarial framing review for explicitly requested, contested, or high-risk judgments when the normal AgentOS judgment record is insufficient. Do not auto-run for every opinion or recommendation.
+description: De-anchors a judgment from the asker's framing. Trigger on judgment or evaluation questions, decisions, one-sided framing, confirmation-seeking, or contested topics — never for mechanical execution.
 ---
 
 # Anti-Sycophancy Review
@@ -12,8 +12,6 @@ Thin Codex adapter for the repo-local Agent OS kernel.
 Read:
 
 ```text
-agent-os/boot.md
-agent-os/router.md
 agent-os/review/anti-sycophancy-gate.md
 ```
 

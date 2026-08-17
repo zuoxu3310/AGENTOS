@@ -9,10 +9,10 @@ governed_roots = [
   "agent-os/**/*.md",
   ".agents/skills/**/*.md",
   ".claude/skills/**/*.md",
+  ".claude/agents/*.md",
   "wiki/**/*.md",
-  "outputs/**/*.md",
 ]
-excluded_roots = ["vendor/**", "work/**", "backups/**"]
+excluded_roots = ["vendor/**", "work/**"]
 
 [[artifact]]
 id = "runtime_entry"
@@ -26,12 +26,12 @@ projections = ["AGENTS.md#AGENTOS_RESIDENT_RULES", ".claude/rules/agentos-local-
 verification = ["managed_block_exact", "claude_projection_exact"]
 
 [[artifact]]
-id = "boot"
-paths = ["agent-os/boot.md"]
-canonical_owner = "agent-os/boot.md"
-consumer = ["codex", "claude"]
-load_mode = "startup_on_demand"
-required_structure = ["(?m)^# AgentOS Boot$", "(?m)^## Startup Sequence$"]
+id = "architecture"
+paths = ["agent-os/architecture.md"]
+canonical_owner = "matched_file"
+consumer = ["codex", "claude", "future_sessions"]
+load_mode = "condition_triggered"
+required_structure = ["(?m)^# ", "(?m)^## Purpose$"]
 forbidden_content = ["(?m)^Date:"]
 projections = []
 verification = ["structure", "links_resolve"]
@@ -56,7 +56,7 @@ load_mode = "condition_triggered"
 required_structure = ["(?m)^# ", "(?m)^## Purpose$"]
 forbidden_content = ["(?m)^Date:"]
 projections = []
-verification = ["structure", "prompt_xml_when_applicable"]
+verification = ["structure", "prompt_xml_when_applicable", "links_resolve"]
 
 [[artifact]]
 id = "workflow"
@@ -78,7 +78,7 @@ load_mode = "runtime_condition_triggered"
 required_structure = ["(?m)^# ", "(?m)^## Purpose$"]
 forbidden_content = ["(?m)^Date:"]
 projections = []
-verification = ["structure", "runtime_contract_tests"]
+verification = ["structure", "runtime_contract_tests", "links_resolve"]
 
 [[artifact]]
 id = "skill_adapter"
@@ -96,6 +96,17 @@ projections = []
 verification = ["structure", "source_reference"]
 
 [[artifact]]
+id = "role_contract"
+paths = [".claude/agents/*.md"]
+canonical_owner = "matched_file"
+consumer = ["claude"]
+load_mode = "native_subagent_spawn"
+required_structure = ["(?m)^---$"]
+forbidden_content = ["(?m)^Date:"]
+projections = []
+verification = ["structure", "links_resolve"]
+
+[[artifact]]
 id = "kernel_memory"
 paths = ["agent-os/memory/*.md"]
 canonical_owner = "matched_file"
@@ -104,7 +115,7 @@ load_mode = "memory_condition_triggered"
 required_structure = ["(?m)^# ", "(?m)^## Purpose$"]
 forbidden_content = ["(?m)^Date:"]
 projections = []
-verification = ["structure", "memory_contract_tests"]
+verification = ["structure", "memory_contract_tests", "links_resolve"]
 
 [[artifact]]
 id = "runtime_state"
@@ -359,12 +370,12 @@ projections = []
 verification = ["archive_reachable"]
 
 [[artifact]]
-id = "evidence_output"
-paths = ["outputs/**/*.md"]
-canonical_owner = "producing_task"
-consumer = ["humans", "future_sessions"]
-load_mode = "explicit_reference"
+id = "human_doc"
+paths = ["wiki/docs/task-anatomy.md"]
+canonical_owner = "wiki/docs/task-anatomy.md"
+consumer = ["human"]
+load_mode = "on_demand"
 required_structure = ["(?m)^# "]
-forbidden_content = []
+forbidden_content = ["(?m)^Date:"]
 projections = []
-verification = ["structure", "claim_evidence_gate"]
+verification = ["structure", "links_resolve"]

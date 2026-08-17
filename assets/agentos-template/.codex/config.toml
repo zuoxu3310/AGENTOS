@@ -1,19 +1,22 @@
 developer_instructions = """
-This trusted project uses the repo-local AgentOS kernel. AGENTS.md contains the
-generated resident rules block. For non-small work, follow its startup route to
-agent-os/boot.md and agent-os/router.md.
-
-Codex-specific AgentOS startup is native to Codex:
-- AGENTS.md supplies persistent project guidance before work starts; its managed
-  block is generated from agent-os/rules-card.md.
-- .agents/skills/ supplies Codex-native workflow adapters.
-- .codex/hooks.json and .codex/hooks/ restore long-task attention and run
-  deterministic checks.
-- SessionStart restores only the current long-task finish line and open work;
-  UserPromptSubmit asks the main model to re-read every real user message.
-Do not use .codex/rules/ for AgentOS behavior rules; Codex rules/ is only for
-command execution policy.
+AgentOS is installed in this project. Ordinary chat is the default: nothing about
+the three-departments chain applies until the user explicitly invokes the
+`agentos` skill (`$agentos`, "三省六部", "走链"). When invoked, this thread becomes
+the relay described in `.agents/skills/agentos/SKILL.md`: it carries the user's
+exact words to `中书省｜<task-title>｜<task-id>` and the reply back, and never thinks or edits in
+their place. A thread whose first message says `你是中书/门下/尚书/执行体/御史，任务
+<id>` adopts that seat and reads `.codex/agents/agentos-<seat>.toml` and its
+workflow completely; AGENTS.md stays seat-neutral. The chain gate hook
+(`.codex/hooks/aos_chain_gate.py`) is silent for unbound threads and enforces
+seat order mechanically once a thread is bound; its deny reason is the next
+legal step. Do not use .codex/rules/ for AgentOS behavior rules; Codex rules/ is
+only for command execution policy.
 """
 
 [features]
 hooks = true
+multi_agent = true
+
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 4

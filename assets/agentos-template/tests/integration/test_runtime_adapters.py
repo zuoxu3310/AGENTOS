@@ -74,6 +74,14 @@ class HookHarness:
             / f"{self.runtime}-{SESSION}.json"
         )
 
+    def bind_relay(self, task: str = "t20260817-0930") -> None:
+        """Put this session on the chain the way the `agentos` skill does: the chain gate
+        binds the main session as the relay of a task."""
+        path = self.root / "agent-os" / "state" / "sessions" / f"{self.runtime}-{SESSION}.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"seat": "agentos-relay", "task_id": task, "bound": True,
+                                    "ts": 1.0}), encoding="utf-8")
+
     def write_state(self, active_work: dict) -> None:
         path = self.state_path()
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -129,6 +137,7 @@ class RuntimeAdapterContractTests(unittest.TestCase):
             "authorization",
         )
         for harness in self.harnesses:
+            harness.bind_relay()
             harness.write_state(done_work())
             for source in ("startup", "resume", "clear", "compact"):
                 with self.subTest(runtime=harness.runtime, source=source):
@@ -136,13 +145,49 @@ class RuntimeAdapterContractTests(unittest.TestCase):
                     self.assertEqual(0, result.returncode, result.stderr)
                     context = additional_context(result)
                     self.assertIn('phase="restore"', context)
+                    self.assertIn("agentos_relay", context)
                     self.assertIn("Deliver the long-task result", context)
                     self.assertIn(str(harness.state_path()), context)
                     for word in forbidden:
                         self.assertNotIn(word, context)
 
+    def test_unbound_session_gets_one_line_and_every_other_hook_is_silent(self) -> None:
+        for harness in self.harnesses:
+            with self.subTest(runtime=harness.runtime):
+                start = harness.run("aos_session_start.py", {"source": "startup"})
+                self.assertEqual(0, start.returncode, start.stderr)
+                context = additional_context(start)
+                self.assertIn("agentos", context)
+                self.assertNotIn("Zhongshu seat", context)
+                self.assertNotIn("<agentos_attention", context)
+                harness.write_state(done_work())
+                for hook, extra in (
+                    ("aos_prompt_baseline.py", {"prompt": "随便聊聊"}),
+                    ("aos_stop_gate.py", {"stop_hook_active": False}),
+                    ("aos_prompt_craft_guard.py", {"tool_name": "Agent",
+                                                   "tool_input": {"subagent_type": "general-purpose",
+                                                                  "prompt": "bare prompt"}}),
+                    ("aos_chain_gate.py", {"hook_event_name": "PreToolUse", "tool_name": "Edit",
+                                           "tool_input": {"file_path": str(harness.root / "src/app.py")}}),
+                    ("aos_chain_gate.py", {"hook_event_name": "Stop", "stop_hook_active": False}),
+                ):
+                    result = harness.run(hook, extra)
+                    self.assertEqual(0, result.returncode, result.stderr)
+                    self.assertEqual("", result.stdout.strip(), (hook, extra))
+
+    def test_codex_seat_thread_gets_its_seat_context(self) -> None:
+        codex = self.harnesses[0]
+        path = codex.root / "agent-os" / "state" / "sessions" / f"codex-{SESSION}.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"seat": "agentos-zhongshu", "task_id": "t20260817-0930"}), encoding="utf-8")
+        result = codex.run("aos_session_start.py", {"source": "startup"})
+        context = additional_context(result)
+        self.assertIn('seat="agentos-zhongshu"', context)
+        self.assertIn("NOT 中书", context) if False else self.assertIn("agent-os/workflows/zhongshu.md", context)
+
     def test_user_prompt_reconsiders_every_real_message_but_skips_stop_continuation(self) -> None:
         for harness in self.harnesses:
+            harness.bind_relay()
             with self.subTest(runtime=harness.runtime):
                 result = harness.run(
                     "aos_prompt_baseline.py",
@@ -171,8 +216,9 @@ class RuntimeAdapterContractTests(unittest.TestCase):
         for command in probes:
             with self.subTest(command=command):
                 result = codex.run(
-                    "aos_guard_enforcer.py",
-                    {"tool_name": "Bash", "tool_input": {"command": command}},
+                    "aos_chain_gate.py",
+                    {"hook_event_name": "PreToolUse", "tool_name": "Bash",
+                     "tool_input": {"command": command}},
                 )
                 self.assertEqual(0, result.returncode, result.stderr)
                 self.assertEqual("", result.stdout.strip())
@@ -188,30 +234,36 @@ class RuntimeAdapterContractTests(unittest.TestCase):
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertEqual("", result.stdout.strip())
 
-    def test_codex_blocks_native_delegation_and_allows_vendored_runner(self) -> None:
-        codex = self.harnesses[0]
-        native = codex.run(
-            "aos_guard_enforcer.py",
-            {"tool_name": "Agent", "tool_input": {"prompt": "unused"}},
-        )
-        decision = (payload(native).get("hookSpecificOutput") or {}).get("permissionDecision")
-        self.assertEqual("deny", decision)
-        self.assertNotIn('"ask"', native.stdout)
-
-        runner = codex.run(
-            "aos_guard_enforcer.py",
-            {
-                "tool_name": "Bash",
-                "tool_input": {
-                    "command": "node vendor/claude-dynamic-workflows-codex/runner/bin/run-workflow.js flow.js"
-                },
-            },
-        )
-        self.assertEqual("", runner.stdout.strip())
-
+    def test_both_runtimes_wire_the_chain_gate_and_no_runner_guard_remains(self) -> None:
+        for runtime in RUNTIMES:
+            self.assertFalse((ROOT / f".{runtime}" / "hooks" / "aos_guard_enforcer.py").exists())
+            self.assertTrue((ROOT / f".{runtime}" / "hooks" / "aos_chain_gate.py").is_file())
+        codex_hooks = (ROOT / ".codex" / "hooks.json").read_text(encoding="utf-8")
         claude_settings = (ROOT / ".claude" / "settings.json").read_text(encoding="utf-8")
-        self.assertNotIn("aos_guard_enforcer.py", claude_settings)
-        self.assertIn("Workflow", claude_settings)
+        for text in (codex_hooks, claude_settings):
+            self.assertIn("aos_chain_gate.py", text)
+            self.assertIn("SubagentStop", text)
+        # Codex uses Desktop codex_app threads; native AgentOS seat spawning is retired.
+        codex = self.harnesses[0]
+        mapping = codex.root / "agent-os" / "state" / "sessions" / f"codex-{SESSION}.json"
+        mapping.parent.mkdir(parents=True, exist_ok=True)
+        mapping.write_text(json.dumps({"seat": "agentos-zhongshu", "task_id": "contract"}), encoding="utf-8")
+        create_thread = {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "codex_app__create_thread",
+            "tool_input": {"title": "门下省｜未命名任务｜contract", "prompt": "你是门下，任务 contract"},
+        }
+        incomplete = payload(codex.run("aos_chain_gate.py", create_thread))
+        self.assertEqual("deny", incomplete["hookSpecificOutput"]["permissionDecision"])
+        self.assertIn("environment.type=local", incomplete["hookSpecificOutput"]["permissionDecisionReason"])
+        native = {"hook_event_name": "PreToolUse", "tool_name": "spawn_agent",
+                  "tool_input": {"agent_type": "agentos-menxia", "prompt": "work"}}
+        decision = (payload(codex.run("aos_chain_gate.py", native)).get("hookSpecificOutput") or {})
+        self.assertEqual("deny", decision.get("permissionDecision"))
+        self.assertEqual(
+            "[AgentOS chain] 席位用 codex_app create_thread / send_message_to_thread",
+            decision.get("permissionDecisionReason"),
+        )
 
     def test_post_tool_is_silent_except_for_structured_governed_edits(self) -> None:
         for harness in self.harnesses:
@@ -226,7 +278,7 @@ class RuntimeAdapterContractTests(unittest.TestCase):
                 "aos_kernel_lint.py",
                 {
                     "tool_name": "Bash",
-                    "tool_input": {"command": "printf text > agent-os/boot.md"},
+                    "tool_input": {"command": "printf text > agent-os/router.md"},
                 },
             )
             self.assertEqual("", shell.stdout.strip())
@@ -234,14 +286,14 @@ class RuntimeAdapterContractTests(unittest.TestCase):
 
             harness.set_lint(
                 exit_code=1,
-                message="FAIL agent-os/boot.md missing boot structure",
+                message="FAIL agent-os/router.md missing router structure",
             )
             governed = harness.run(
                 "aos_kernel_lint.py",
-                {"tool_name": "Edit", "tool_input": {"file_path": "agent-os/boot.md"}},
+                {"tool_name": "Edit", "tool_input": {"file_path": "agent-os/router.md"}},
             )
             self.assertEqual(2, governed.returncode)
-            self.assertIn("agent-os/boot.md", governed.stderr)
+            self.assertIn("agent-os/router.md", governed.stderr)
 
             harness.set_lint(
                 exit_code=1,
@@ -249,7 +301,7 @@ class RuntimeAdapterContractTests(unittest.TestCase):
             )
             unrelated = harness.run(
                 "aos_kernel_lint.py",
-                {"tool_name": "Edit", "tool_input": {"file_path": "agent-os/boot.md"}},
+                {"tool_name": "Edit", "tool_input": {"file_path": "agent-os/router.md"}},
             )
             self.assertEqual(0, unrelated.returncode, unrelated.stderr)
             self.assertEqual("", unrelated.stderr.strip())
@@ -258,8 +310,9 @@ class RuntimeAdapterContractTests(unittest.TestCase):
         codex = self.harnesses[0]
         for index in range(5):
             before = codex.run(
-                "aos_guard_enforcer.py",
-                {"tool_name": "Bash", "tool_input": {"command": f"cat file-{index}"}},
+                "aos_chain_gate.py",
+                {"hook_event_name": "PreToolUse", "tool_name": "Bash",
+                 "tool_input": {"command": f"cat file-{index}"}},
             )
             after = codex.run(
                 "aos_kernel_lint.py",
@@ -270,6 +323,7 @@ class RuntimeAdapterContractTests(unittest.TestCase):
 
     def test_pending_long_task_stops_once_then_marks_delivered(self) -> None:
         for harness in self.harnesses:
+            harness.bind_relay()
             harness.write_state(done_work())
             first = harness.run("aos_stop_gate.py", {"stop_hook_active": False})
             first_payload = payload(first)
@@ -288,6 +342,7 @@ class RuntimeAdapterContractTests(unittest.TestCase):
 
     def test_short_reply_has_no_forced_second_generation(self) -> None:
         for harness in self.harnesses:
+            harness.bind_relay()
             result = harness.run("aos_stop_gate.py", {"stop_hook_active": False})
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertEqual("", result.stdout.strip())

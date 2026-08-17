@@ -8,35 +8,35 @@ form is imitated from them, never guessed from prohibitions.
 ## Admission Rule
 
 ```text
-- Only deliverables Master ZX actually accepted enter the library — verbatim,
+- Only deliverables the user actually accepted enter the library — verbatim,
   never edited, never paraphrased.
-- Each exemplar carries: date, deliverable type, the task context in one line,
-  and the acceptance evidence (Master ZX's accepting words or the absence of
-  correction on a type he normally corrects).
-- The agent never self-admits an exemplar. No acceptance evidence, no entry.
-- Seeding: an EMPTY library for a governed type is a defect, not a waiting state.
-  When a type has no exemplar, draft one WITH the user in the current session
-  (shape rules + a live sample) and ask for acceptance on the spot. Waiting for
-  acceptances to accumulate is not a seeding plan. A mechanism shipped with an
-  empty library is unfinished work.
+- Each exemplar carries frontmatter fields: type / date / context /
+  acceptance / accepted_scope. Acceptance evidence is the user's accepting
+  words, or the absence of correction on a type they normally correct.
+- The agent never self-admits an exemplar, and never manufactures a draft to
+  solicit acceptance. An empty library is a legal state, not a defect: the
+  governing method gate (`agent-os/review/delivery-gate.md` for deliveries)
+  operates alone until real accepted work accumulates.
 ```
 
-## Location and Shape
+## Location And Shape
 
 ```text
-wiki/exemplars/<type>/<date>-<slug>.md   (per project)
-  frontmatter: type / date / context / acceptance-evidence
+wiki/exemplars/<slug>-<date>.md          (per project; flat, no subdirectories)
+  frontmatter: type / date / context / acceptance / accepted_scope
   body: the accepted deliverable, verbatim
-wiki/exemplars/_INDEX.md                 (one line per exemplar, per-type sections)
+wiki/exemplars/_INDEX.md                 (one line per exemplar with status)
+wiki/exemplars/archive/                  (superseded or retired entries)
 ```
 
 ## Usage
 
 ```text
-- Before producing any governed deliverable type (report to ZX, decision brief,
-  work order, PI-style writeup, handoff), load that type's exemplars and match
-  their FORM. Content comes from the task; shape comes from the exemplar.
-- On conflict between an exemplar and a prose style rule, flag it to Master ZX
+- Before producing a governed deliverable type, check `_INDEX.md`; if an
+  accepted exemplar of that type exists, load it and match its FORM. Content
+  comes from the task; shape comes from the exemplar. If none exists, the
+  method gate alone governs.
+- On conflict between an exemplar and a prose style rule, flag it to the user
   instead of silently picking one; the latest user message always wins.
 - Health: keep <= 3 current exemplars per type; older ones move to archive/
   (never deleted — they remain evidence of what was once accepted).

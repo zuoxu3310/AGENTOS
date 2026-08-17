@@ -12,8 +12,6 @@ Thin Codex adapter for the repo-local Agent OS kernel.
 Read:
 
 ```text
-agent-os/boot.md
-agent-os/router.md
 agent-os/review/route-keeper-promotion-gate.md
 ```
 
@@ -27,8 +25,12 @@ Use after significant tool output, file edits, tests, reports, runtime discoveri
 route_promotion_review:
   active_user_object:
   artifact_or_branch:
+  source:
+  claim_type:
+  relation_to_task_contract:
   promotion_class:
   evidence_checked:
+  user_visible_impact:
   return_to_mainline_rule:
 ```
 

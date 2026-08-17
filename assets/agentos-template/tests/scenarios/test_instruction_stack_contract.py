@@ -14,19 +14,92 @@ def read(relative: str) -> str:
 
 
 class InstructionStackContractTests(unittest.TestCase):
-    def test_dynamic_workflow_remains_the_only_codex_delegation_backend(self) -> None:
+    def test_codex_seats_use_desktop_threads_and_native_spawn_is_retired(self) -> None:
         adapter = read("agent-os/adapters/codex-workflow.md").lower()
-        skill = read(".agents/skills/dynamic-workflow/SKILL.md").lower()
-        guard = read(".codex/hooks/aos_guard_enforcer.py")
-        self.assertIn("no_delegation", adapter)
-        self.assertIn("one delegated execution engine", adapter)
-        self.assertIn("vendored dynamic workflow runner", guard.lower())
-        self.assertIn("sole delegated execution command", skill)
-        self.assertNotIn("spawn_agent", adapter)
+        self.assertIn("spawn_agent", adapter)
+        self.assertIn("codex_app.create_thread", adapter)
+        self.assertIn("codex_app.send_message_to_thread", adapter)
+        self.assertNotIn("no_delegation", adapter)
+        for seat in ("agentos-zhongshu", "agentos-menxia", "agentos-shangshu", "agentos-executor", "agentos-yushi"):
+            toml = read(f".codex/agents/{seat}.toml")
+            self.assertIn(f'name = "{seat}"', toml)
+            self.assertIn("developer_instructions", toml)
+        self.assertFalse((ROOT / ".codex/hooks/aos_guard_enforcer.py").exists())
         self.assertFalse((ROOT / ".claude/skills/dynamic-workflow/SKILL.md").exists())
-        self.assertTrue(
-            (ROOT / "vendor/claude-dynamic-workflows-codex/runner/bin/run-workflow.js").is_file()
-        )
+
+    def test_every_seat_has_native_skill_binding_and_hashed_runtime_receipt(self) -> None:
+        manifest = read("agent-os/skills/seat-skills.json")
+        receipt = read("agent-os/tools/aos_skill_receipt.py")
+        gate = read(".codex/hooks/aos_chain_gate.py")
+        for role in ("zhongshu", "menxia", "shangshu", "executor", "yushi"):
+            self.assertIn(f'"{role}"', manifest)
+        for name in (
+            "intent-contract-review", "reasoning-causality-review",
+            "anti-sycophancy-review", "prompt-craft-review",
+            "route-promotion-review", "evidence-claim-review", "delivery-review",
+            "engineering-plan-review", "minimal-code-review", "lifecycle-execution",
+            "memory-wiki-routing",
+        ):
+            self.assertIn(f'"{name}"', manifest)
+            self.assertTrue((ROOT / f".agents/skills/{name}/SKILL.md").is_file())
+            self.assertTrue((ROOT / f".claude/skills/{name}/SKILL.md").is_file())
+        self.assertIn("hashlib.sha256", receipt)
+        self.assertIn('"skill_load"', receipt)
+        self.assertIn("valid_skill_receipt", gate)
+
+    def test_codex_visual_seats_are_main_titled_local_and_not_archived_early(self) -> None:
+        config = read(".codex/config.toml")
+        adapter = read("agent-os/adapters/codex-workflow.md")
+        shangshu = read("agent-os/workflows/shangshu.md")
+        skill = read(".agents/skills/agentos/SKILL.md")
+        for text in (config, adapter, skill):
+            normalized = text.replace("<id>", "<task-id>").replace("<task>", "<task-id>")
+            self.assertIn("中书省｜<task-title>｜<task-id>", normalized)
+        for text in (adapter, skill):
+            self.assertIn("environment.type=local", text)
+        for text in (adapter, read(".codex/agents/agentos-zhongshu.toml")):
+            self.assertIn("seat-skills.json", text)
+            self.assertIn("aos_skill_receipt.py", text)
+        self.assertIn("Do not archive", shangshu)
+        self.assertIn("next task", adapter)
+
+    def test_visible_seat_titles_include_readable_task_and_stable_id(self) -> None:
+        recorder = read("agent-os/tools/aos_task_record.py")
+        gate = read(".claude/hooks/aos_chain_gate.py")
+        skill = read(".agents/skills/agentos/SKILL.md")
+        self.assertIn("def task_title", recorder)
+        self.assertIn('commands.add_parser("title"', recorder)
+        self.assertIn("def seat_thread_title", gate)
+        self.assertIn("角色｜任务简称｜任务号", gate)
+        self.assertIn("aos_task_record.py title --task <id>", skill)
+
+    def test_chain_is_opt_in_through_one_relay_skill_on_both_runtimes(self) -> None:
+        codex_skill = read(".agents/skills/agentos/SKILL.md")
+        claude_skill = read(".claude/skills/agentos/SKILL.md")
+        self.assertEqual(codex_skill, claude_skill)
+        self.assertIn("name: agentos", codex_skill)
+        self.assertIn("ONLY when the user explicitly invokes", codex_skill)
+        for phrase in ("--role relay --kind resume", "--kind pause", "--kind stop",
+                       "never summarizes", "t<YYYYMMDD-HHMM>", "agentos-zhongshu",
+                       "codex_app.create_thread"):
+            self.assertIn(phrase, codex_skill)
+        settings = read(".claude/settings.json")
+        self.assertNotIn('"agent"', settings)
+        self.assertFalse((ROOT / ".claude/agents/agentos-entry.md").exists())
+        config = read(".codex/config.toml")
+        self.assertIn("Ordinary chat is the default", config)
+        self.assertIn("`agentos` skill", config)
+        rules = read("agent-os/rules-card.md")
+        self.assertIn("The chain is opt-in", rules)
+        for entry in (read("AGENTS.md"), read("CLAUDE.md")):
+            self.assertIn("ordinary chat is the default", entry)
+            self.assertNotIn("every request runs the three-departments", entry)
+        zhongshu = read(".claude/agents/agentos-zhongshu.md")
+        for phrase in ("my call failed", "strongest rival", "never `create`", "NO wording"):
+            self.assertIn(phrase, zhongshu)
+        workflow = read("agent-os/workflows/zhongshu.md")
+        self.assertIn("never suggests one", workflow)
+        self.assertIn("you never `create`", workflow)
 
     def test_claude_keeps_native_workflow_without_codex_guard(self) -> None:
         claude = read("CLAUDE.md")
@@ -35,6 +108,47 @@ class InstructionStackContractTests(unittest.TestCase):
         self.assertIn("keeps Superpowers enabled", claude)
         self.assertNotIn("aos_guard_enforcer.py", settings)
         self.assertFalse((ROOT / ".claude/hooks/aos_guard_enforcer.py").exists())
+        self.assertIn('"matcher": "^Bash$"', settings)
+        self.assertIn('"PostToolUse"', settings)
+
+    def test_claude_seats_use_synchronous_agent_results_not_idle_team_messages(self) -> None:
+        zhongshu = read(".claude/agents/agentos-zhongshu.md")
+        menxia = read(".claude/agents/agentos-menxia.md")
+        shangshu = read(".claude/agents/agentos-shangshu.md")
+        executor = read(".claude/agents/agentos-executor.md")
+        for text in (zhongshu, menxia, shangshu, executor):
+            tools = text.split("---", 2)[1]
+            self.assertNotIn("SendMessage", tools)
+        for phrase in (
+            "two separate synchronous `Agent(agentos-menxia)` calls",
+            "run_in_background=false",
+            "never poll the ledger",
+        ):
+            self.assertIn(phrase, zhongshu)
+        self.assertIn("Each spawn handles exactly the phase named", menxia)
+        self.assertIn("Agent(agentos-executor)", shangshu)
+        self.assertIn("synchronous Agent result", executor)
+        workflow = read("agent-os/workflows/zhongshu.md")
+        self.assertIn("two separate synchronous `Agent(agentos-menxia)`", workflow)
+        self.assertIn("Never use `SendMessage` to an ended Claude agent", workflow)
+
+    def test_relay_pause_and_stop_have_fixed_non_inferential_replies(self) -> None:
+        skill = read(".claude/skills/agentos/SKILL.md")
+        self.assertEqual(skill, read(".agents/skills/agentos/SKILL.md"))
+        self.assertIn("已暂停任务 <id>；席位保留", skill)
+        self.assertIn("已停止任务 <id>；本会话回到普通聊天", skill)
+        self.assertIn("Do not add a diagnosis, execution history", skill)
+
+    def test_relay_preserves_invocation_and_yushi_respects_read_only_contracts(self) -> None:
+        skill = read(".claude/skills/agentos/SKILL.md")
+        self.assertIn('"Exact words" includes the invocation token', skill)
+        self.assertIn("reconstruct the full\n   line as `/agentos`", skill)
+        yushi_agent = read(".claude/agents/agentos-yushi.md")
+        yushi_workflow = read("agent-os/workflows/yushi.md")
+        for text in (yushi_agent, yushi_workflow):
+            self.assertIn("read-only", text)
+            self.assertIn("error_record", text)
+            self.assertNotIn("--kind error_learning", text)
 
     def test_resident_rules_are_one_exact_projection(self) -> None:
         rules = read("agent-os/rules-card.md")
@@ -53,8 +167,8 @@ class InstructionStackContractTests(unittest.TestCase):
         compact = re.sub(r"\s+", " ", rules)
         self.assertIn("start from first principles", compact)
         self.assertIn("re-read every real user message", compact)
-        self.assertIn("hooks only to restore attention or enforce deterministic", compact)
-        self.assertIn("restored task state is context, never inherited execution permission", compact)
+        self.assertIn("hooks restore attention or enforce deterministic facts", compact)
+        self.assertIn("restored task state is context, never inherited permission", compact)
 
     def test_long_task_contract_has_a_falsifiable_finish_line(self) -> None:
         contract = read("agent-os/review/task-contract.md")
@@ -82,7 +196,7 @@ class InstructionStackContractTests(unittest.TestCase):
         lifecycle = read("agent-os/workflows/agent-execution-lifecycle.md").lower()
         stop = read(".codex/hooks/aos_stop_gate.py").lower()
         for phrase in (
-            "simple, natural, direct language",
+            "plain language",
             "if one sentence says it clearly, use one sentence",
             "simplicity must not hide",
         ):
@@ -105,16 +219,15 @@ class InstructionStackContractTests(unittest.TestCase):
         self.assertIn('phase="restore"', session)
         self.assertIn('report_state") != "pending"', stop)
 
-    def test_pre_and_post_tool_hooks_do_not_classify_shell_intent(self) -> None:
-        guard = read(".codex/hooks/aos_guard_enforcer.py")
+    def test_chain_gate_denies_on_facts_only_and_never_asks(self) -> None:
+        gate = read(".codex/hooks/aos_chain_gate.py")
         post = read(".codex/hooks/aos_kernel_lint.py")
-        codex_hooks = read(".codex/hooks.json")
-        claude_hooks = read(".claude/settings.json")
-        for forbidden in ("READ_ONLY_SHELL", "SHELL_COMPOSITION", "WRITE_HINTS", "permissionDecision\": \"ask"):
-            self.assertNotIn(forbidden, guard)
+        for forbidden in ("permissionDecision\": \"ask", "\"ask\""):
+            self.assertNotIn(forbidden, gate)
             self.assertNotIn(forbidden, post)
-        self.assertNotIn('"matcher": "^(Bash|apply_patch|Edit|Write|MultiEdit)$"', codex_hooks)
-        self.assertNotIn('"matcher": "^(Edit|Write|MultiEdit|Bash)$"', claude_hooks)
+        self.assertIn("agent_type", gate)          # identity from the runtime
+        self.assertIn("ledger_events", gate)       # phase from the ledger
+        self.assertIn("quoted_by_user", gate)      # bypass = verbatim user quote
 
     def test_prompt_labels_remain_a_structure_check(self) -> None:
         gate = read("agent-os/review/prompt-craft-gate.md").lower()
@@ -126,7 +239,7 @@ class InstructionStackContractTests(unittest.TestCase):
     def test_questions_leave_only_real_user_owned_blockers(self) -> None:
         rules = read("agent-os/rules-card.md").lower()
         self.assertIn("the user owns decisions that change the requested outcome", rules)
-        self.assertIn("ask only when a user-owned choice truly blocks the next action", rules)
+        self.assertIn("ask only when a user-owned choice blocks", rules)
 
     def test_minimal_mechanism_cannot_reduce_the_accepted_result(self) -> None:
         gate = read("agent-os/review/minimal-code-gate.md").lower()
@@ -166,6 +279,14 @@ class InstructionStackContractTests(unittest.TestCase):
                 if "agent-os/state/" in path.relative_to(ROOT).as_posix():
                     continue
                 text = path.read_text(encoding="utf-8", errors="replace")
+                if path.name == "install-agentos.py":
+                    # Retired names may exist only as exact cleanup tombstones.
+                    text = re.sub(
+                        r"OBSOLETE_AGENTOS_PATHS\s*=\s*\(.*?\)\n\n",
+                        "",
+                        text,
+                        flags=re.DOTALL,
+                    )
                 for term in forbidden:
                     with self.subTest(path=path.relative_to(ROOT), term=term):
                         self.assertNotIn(term, text)
@@ -178,6 +299,24 @@ class InstructionStackContractTests(unittest.TestCase):
             self.assertIn("at most three", skill)
         self.assertIn("single operating contract", contract)
         self.assertIn("do not preload the whole wiki or error library", contract)
+
+    def test_role_contracts_order_method_reads_by_path(self) -> None:
+        """A method reference is not a method: every chain role contract must
+        order concrete Reads of kernel gate paths at the moment of use, not
+        name skills or capabilities in the abstract (wiki/errors
+        root-named-is-not-possessed, recurrence 3)."""
+        for contract in (
+            ".claude/agents/agentos-zhongshu.md",
+            ".claude/agents/agentos-menxia.md",
+            ".claude/agents/agentos-shangshu.md",
+            ".claude/agents/agentos-executor.md",
+            ".claude/agents/agentos-yushi.md",
+        ):
+            body = read(contract)
+            self.assertRegex(
+                body, r"Read[^.\n]*`agent-os/(review|memory|workflows)/[a-z-]+\.md`",
+                f"{contract} lacks a concrete method-read order",
+            )
 
 
 if __name__ == "__main__":

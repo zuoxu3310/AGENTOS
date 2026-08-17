@@ -35,145 +35,190 @@ REQUIRED_DIRS = [
     "wiki/raw",
     "wiki/docs",
     "wiki/ledgers",
-    "outputs",
-    "work/e2e-pressure-tests",
 ]
 
 REQUIRED_FILES = [
-    "AGENTS.md",
-    "CLAUDE.md",
-    "PLANS.md",
-    "PROGRESS.md",
-    "DECISIONS.md",
-    "HANDOFF.md",
-    "agent-os/boot.md",
-    "agent-os/router.md",
-    "agent-os/rules-card.md",
-    "agent-os/artifact-contracts.toml",
-    "agent-os/adapters/runtime-visibility.md",
-    "agent-os/adapters/skill-parity.md",
-    "agent-os/adapters/codex-workflow.md",
-    "agent-os/memory/bootstrap.md",
-    "agent-os/memory/routing.md",
-    "agent-os/memory/sync-audit.md",
-    "agent-os/memory/error-learning.md",
-    "agent-os/memory/wiki-v2.md",
-    "agent-os/review/reasoning-base.md",
-    "agent-os/review/intent-causal-gate.md",
-    "agent-os/review/task-contract.md",
-    "agent-os/review/route-keeper-promotion-gate.md",
-    "agent-os/review/evidence-to-claim-gate.md",
-    "agent-os/review/completion-gate.md",
-    "agent-os/review/anti-sycophancy-gate.md",
-    "agent-os/review/minimal-code-gate.md",
-    "agent-os/workflows/agent-execution-lifecycle.md",
-    "agent-os/handoffs/README.md",
-    "agent-os/skills/README.md",
-    "agent-os/tools/aos-lint.py",
-    "agent-os/tools/aos_active_work.py",
-    ".claude/settings.json",
-    ".codex/config.toml",
-    ".codex/hooks.json",
-    ".codex/hooks/aos_common.py",
-    ".codex/hooks/aos_session_start.py",
-    ".codex/hooks/aos_prompt_baseline.py",
-    ".codex/hooks/aos_stop_gate.py",
-    ".codex/hooks/aos_kernel_lint.py",
-    ".codex/hooks/aos_guard_enforcer.py",
-    ".claude/hooks/aos_common.py",
-    ".claude/hooks/aos_session_start.py",
-    ".claude/hooks/aos_prompt_baseline.py",
-    ".claude/hooks/aos_stop_gate.py",
-    ".claude/hooks/aos_kernel_lint.py",
-    ".claude/rules/agentos-local-rules.md",
-    ".agents/skills/dynamic-workflow/SKILL.md",
-    ".agents/skills/dynamic-workflow/agents/openai.yaml",
+    "tests/capabilities.json",
+    "tests/integration/test_runtime_adapters.py",
+    "tests/scenarios/test_artifact_contracts.py",
+    "tests/scenarios/test_instruction_stack_contract.py",
+    "tests/scenarios/test_task_ledger_sequencing.py",
+    "tests/unit/test_active_work.py",
+    "tests/unit/test_capability_manifest.py",
+    "tests/unit/test_task_record.py",
+    ".agents/skills/agentos/SKILL.md",
+    ".agents/skills/agentos/agents/openai.yaml",
+    ".agents/skills/anti-sycophancy-review/SKILL.md",
+    ".agents/skills/anti-sycophancy-review/agents/openai.yaml",
+    ".agents/skills/delivery-review/SKILL.md",
+    ".agents/skills/delivery-review/agents/openai.yaml",
+    ".agents/skills/engineering-plan-review/SKILL.md",
+    ".agents/skills/engineering-plan-review/agents/openai.yaml",
     ".agents/skills/evidence-claim-review/SKILL.md",
+    ".agents/skills/evidence-claim-review/agents/openai.yaml",
+    ".agents/skills/fusion-workflow/SKILL.md",
+    ".agents/skills/fusion-workflow/agents/openai.yaml",
     ".agents/skills/intent-contract-review/SKILL.md",
+    ".agents/skills/intent-contract-review/agents/openai.yaml",
     ".agents/skills/lifecycle-execution/SKILL.md",
+    ".agents/skills/lifecycle-execution/agents/openai.yaml",
     ".agents/skills/memory-wiki-routing/SKILL.md",
+    ".agents/skills/memory-wiki-routing/agents/openai.yaml",
+    ".agents/skills/minimal-code-review/SKILL.md",
+    ".agents/skills/minimal-code-review/agents/openai.yaml",
+    ".agents/skills/prompt-craft-review/SKILL.md",
+    ".agents/skills/prompt-craft-review/agents/openai.yaml",
     ".agents/skills/reasoning-causality-review/SKILL.md",
+    ".agents/skills/reasoning-causality-review/agents/openai.yaml",
     ".agents/skills/route-promotion-review/SKILL.md",
+    ".agents/skills/route-promotion-review/agents/openai.yaml",
+    ".claude/agents/agentos-executor.md",
+    ".claude/agents/agentos-menxia.md",
+    ".claude/agents/agentos-shangshu.md",
+    ".claude/agents/agentos-yushi.md",
+    ".claude/agents/agentos-zhongshu.md",
+    ".claude/hooks/aos_common.py",
+    ".claude/hooks/aos_kernel_lint.py",
+    ".claude/hooks/aos_prompt_baseline.py",
+    ".claude/hooks/aos_prompt_craft_guard.py",
+    ".claude/hooks/aos_session_start.py",
+    ".claude/hooks/aos_stop_gate.py",
+    ".claude/rules/agentos-local-rules.md",
+    ".claude/settings.json",
+    ".claude/skills/agentos/SKILL.md",
+    ".claude/skills/anti-sycophancy-review/SKILL.md",
+    ".claude/skills/delivery-review/SKILL.md",
+    ".claude/skills/engineering-plan-review/SKILL.md",
     ".claude/skills/evidence-claim-review/SKILL.md",
+    ".claude/skills/fusion-workflow/SKILL.md",
     ".claude/skills/intent-contract-review/SKILL.md",
     ".claude/skills/lifecycle-execution/SKILL.md",
     ".claude/skills/memory-wiki-routing/SKILL.md",
+    ".claude/skills/minimal-code-review/SKILL.md",
+    ".claude/skills/prompt-craft-review/SKILL.md",
     ".claude/skills/reasoning-causality-review/SKILL.md",
     ".claude/skills/route-promotion-review/SKILL.md",
-    ".claude/skills/anti-sycophancy-review/SKILL.md",
-    ".claude/skills/minimal-code-review/SKILL.md",
-    ".agents/skills/anti-sycophancy-review/SKILL.md",
-    ".agents/skills/anti-sycophancy-review/agents/openai.yaml",
-    ".agents/skills/minimal-code-review/SKILL.md",
-    ".agents/skills/minimal-code-review/agents/openai.yaml",
-    "wiki/index.md",
-    "wiki/log.md",
-    "wiki/raw/MANIFEST.md",
+    ".codex/agents/agentos-zhongshu.toml",
+    ".codex/config.toml",
+    ".codex/hooks.json",
+    ".codex/hooks/aos_common.py",
+    ".codex/hooks/aos_chain_gate.py",
+    ".claude/hooks/aos_chain_gate.py",
+    ".codex/hooks/aos_kernel_lint.py",
+    ".codex/hooks/aos_prompt_baseline.py",
+    ".codex/hooks/aos_prompt_craft_guard.py",
+    ".codex/hooks/aos_session_start.py",
+    ".codex/hooks/aos_stop_gate.py",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "DECISIONS.md",
+    "HANDOFF.md",
+    "PLANS.md",
+    "PROGRESS.md",
+    "agent-os/adapters/codex-workflow.md",
+    "agent-os/adapters/runtime-visibility.md",
+    "agent-os/adapters/skill-parity.md",
+    "agent-os/architecture.md",
+    "agent-os/artifact-contracts.toml",
+    "agent-os/handoffs/README.md",
+    "agent-os/memory/bootstrap.md",
+    "agent-os/memory/error-learning.md",
+    "agent-os/memory/exemplars.md",
+    "agent-os/memory/routing.md",
+    "agent-os/memory/sync-audit.md",
+    "agent-os/memory/wiki-v2.md",
+    "agent-os/review/anti-sycophancy-gate.md",
+    "agent-os/review/completion-gate.md",
+    "agent-os/review/delivery-gate.md",
+    "agent-os/review/engineering-gate.md",
+    "agent-os/review/evidence-to-claim-gate.md",
+    "agent-os/review/intent-causal-gate.md",
+    "agent-os/review/minimal-code-gate.md",
+    "agent-os/review/prompt-craft-gate.md",
+    "agent-os/review/reasoning-base.md",
+    "agent-os/review/route-keeper-promotion-gate.md",
+    "agent-os/review/task-contract.md",
+    "agent-os/router.md",
+    "agent-os/rules-card.md",
+    "agent-os/skills/README.md",
+    "agent-os/skills/seat-skills.json",
+    "agent-os/tools/aos-lint.py",
+    "agent-os/tools/aos_active_work.py",
+    "agent-os/tools/aos_task_record.py",
+    "agent-os/tools/aos_skill_receipt.py",
+    "agent-os/workflows/agent-execution-lifecycle.md",
+    "agent-os/workflows/cognition.md",
+    "agent-os/workflows/executor.md",
+    "agent-os/workflows/fusion-workflow.md",
+    "agent-os/workflows/menxia.md",
+    "agent-os/workflows/shangshu.md",
+    "agent-os/workflows/think-through.md",
+    "agent-os/workflows/yushi.md",
+    "agent-os/workflows/zhongshu.md",
     "wiki/CHATS/README.md",
     "wiki/TASKS/README.md",
     "wiki/docs/README.md",
     "wiki/errors/_INDEX.md",
+    "wiki/index.md",
     "wiki/knowledge/README.md",
     "wiki/knowledge/agentos-wiki-v2-method.md",
     "wiki/ledgers/README.md",
-    "outputs/reasoning-base-v1-templates-2026-07-01.md",
-    "outputs/intent-causal-gate-v1-templates-2026-07-01.md",
-    "outputs/task-contract-v1-templates-2026-07-01.md",
-    "outputs/route-keeper-promotion-gate-v1-templates-2026-07-01.md",
-    "outputs/evidence-to-claim-gate-v1-templates-2026-07-01.md",
-    "outputs/agent-execution-lifecycle-v1-templates-2026-07-01.md",
-    "outputs/agent-os-kernel-placement-map-v1-2026-07-01.md",
-    "work/e2e-pressure-tests/agentos-e2e-pressure-test.mjs",
+    "wiki/log.md",
+    "wiki/raw/MANIFEST.md",
 ]
 
 PATTERNS = {
     "AGENTS.md": [
-        r"agent-os/boot\.md",
         r"agent-os/router\.md",
-        r"Every real user message",
+        r"every real user message",
         r"active_work",
+        r"BEGIN AGENTOS ENTRY CONTRACT",
+        r"`agentos` skill",
     ],
     "CLAUDE.md": [
         r"Claude Code Adapter",
         r"\.claude/skills/",
         r"agentos-local-rules\.md",
         r"native Workflow",
-    ],
-    "agent-os/boot.md": [
-        r"Startup Sequence",
-        r"agent-os/router\.md",
-        r"structure only",
+        r"BEGIN AGENTOS ENTRY CONTRACT",
+        r"agentos-zhongshu",
     ],
     "agent-os/router.md": [
         r"active user object",
         r"Route Table",
         r"\.agents/skills/",
         r"\.claude/skills/",
-        r"one delegated execution engine",
+        r"Desktop threads via",
+        r"opt-in",
     ],
     "agent-os/adapters/runtime-visibility.md": [
         r"Runtime Visibility Adapter",
         r"Codex Visible Thread Standard",
         r"Claude Visibility Standard",
         r"user_visible",
+        r"role_skill_receipt",
     ],
     "agent-os/adapters/skill-parity.md": [
         r"Skill Parity Matrix",
         r"same capability",
         r"same copied skill format",
+        r"seat-skills\.json",
+        r"aos_skill_receipt\.py",
     ],
     "agent-os/adapters/codex-workflow.md": [
         r"Codex Workflow Adapter",
-        r"NO_DELEGATION",
+        r"codex_app\.create_thread",
+        r"send_message_to_thread",
+        r"spawn_agent",
+        r"\.codex/agents/",
+        r"aos_chain_gate\.py",
         r"cheapest capable",
         r"single writer",
-        r"Worker And Model Routing",
-        r"Harness Compiler",
-        r"fan-out and synthesize.*staged pipeline.*race and cancel.*sessionful steering.*human checkpoint",
-        r"one delegated execution engine",
-        r"vendor/claude-dynamic-workflows-codex/runner/bin/run-workflow\.js",
-        r"agent\.start.*agent\.waitAny.*session\.steer.*session\.cancel",
-        r"workspace fingerprint",
+        r"Seat Visibility",
+        r"environment\.type=local",
+        r"skill receipt",
+        r"opt-in",
+        r"agentos-relay",
     ],
     "agent-os/memory/bootstrap.md": [
         r"Memory Bootstrap",
@@ -235,8 +280,10 @@ PATTERNS = {
         r"agentos_attention",
         r"Several tools may serve that one segment",
     ],
-    ".codex/hooks/aos_guard_enforcer.py": [
-        r"vendored Dynamic Workflow runner",
+    ".codex/hooks/aos_chain_gate.py": [
+        r"agent_type",
+        r"ledger_events",
+        r"quoted_by_user",
         r"permissionDecision.*deny",
     ],
     ".claude/settings.json": [
@@ -262,11 +309,11 @@ PATTERNS = {
         r"agentos_attention",
     ],
     ".claude/rules/agentos-local-rules.md": [
-        r"Every real user message",
+        r"every real user message",
         r"native Workflow",
         r"Superpowers",
         r"Source order",
-        r"simple, natural, direct language",
+        r"plain language",
     ],
     "agent-os/memory/error-learning.md": [
         r"same-root",
@@ -288,11 +335,6 @@ PATTERNS = {
         r"supersedes:",
         r"sources:",
     ],
-    "work/e2e-pressure-tests/agentos-e2e-pressure-test.mjs": [
-        r"promotion-gate:downgrade-unsupported-worker-claim",
-        r"skill-parity",
-        r"runtime-visibility",
-    ],
 }
 
 FORBIDDEN_PATTERNS = [
@@ -307,6 +349,13 @@ CONTRACT_FIELDS = {
     "id", "paths", "canonical_owner", "consumer", "load_mode",
     "required_structure", "forbidden_content", "projections", "verification",
 }
+# Verification labels whose proof lives in the pytest suite, not in lint.
+# Lint's duty for these is only that the anchoring test module still exists.
+EXTERNAL_TEST_VERIFICATIONS = {
+    "runtime_contract_tests": "tests/scenarios/test_instruction_stack_contract.py",
+    "memory_contract_tests": "tests/scenarios/test_artifact_contracts.py",
+}
+KERNEL_REFERENCE_PATTERN = r"(?<![\w/])(agent-os/[A-Za-z0-9_./-]+\.(?:md|toml|py))"
 AGENTOS_RULES_BEGIN = "<!-- BEGIN AGENTOS RESIDENT RULES -->"
 AGENTOS_RULES_END = "<!-- END AGENTOS RESIDENT RULES -->"
 WIKI_LINKS_BEGIN = "<!-- BEGIN AGENTOS WIKI LINKS -->"
@@ -736,6 +785,19 @@ def lint_artifact_contracts(failures: list[str]) -> None:
         if len(matches) == 1:
             print(f"PASS artifact type: {path} -> {artifact['id']}")
 
+        verifications = {str(v) for v in (artifact.get("verification") or ())}
+        if verifications & {"links_resolve", "source_reference"}:
+            for pointer in re.findall(KERNEL_REFERENCE_PATTERN, text):
+                if not (ROOT / pointer).is_file():
+                    fail(f"dead kernel reference in {path}: {pointer}", failures)
+        for label in sorted(verifications & set(EXTERNAL_TEST_VERIFICATIONS)):
+            anchor = EXTERNAL_TEST_VERIFICATIONS[label]
+            if not (ROOT / anchor).is_file():
+                fail(
+                    f"verification label {label} for {path} lost its test anchor: {anchor}",
+                    failures,
+                )
+
         if len(matches) == 1 and matches[0].get("id") == "exemplar":
             for pointer in re.findall(r"(?<![\w/])(agent-os/[A-Za-z0-9_./-]+\.md)", text):
                 if not (ROOT / pointer).is_file():
@@ -797,6 +859,94 @@ def lint_artifact_contracts(failures: list[str]) -> None:
                 fail(f"prompt source {source} missing canonical XML tag pair: {tag}", failures)
 
 
+
+def lint_task_ledger_sequencing(failures: list[str]) -> None:
+    """A user-visible delivery must not precede its mandated independent
+    check: in each task ledger, the first zhongshu delivery either follows a
+    menxia independent_review, carries an explicit retroactive/provisional
+    marker, or has a later append-only delivery_correction that targets it
+    (wiki/errors 2026-08-13 delivery-preceded-mandated-independent-check)."""
+    import json as _json
+    tasks_dir = ROOT / "agent-os/state/tasks"
+    if not tasks_dir.is_dir():
+        print("PASS task ledger sequencing: no local task ledgers")
+        return
+    marker_terms = ("retroactive", "provisional", "\u4e8b\u540e\u8865\u8bb0")
+    for ledger in sorted(tasks_dir.glob("*.jsonl")):
+        events = []
+        for line in ledger.read_text(encoding="utf-8").splitlines():
+            try:
+                event = _json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(event, dict):
+                events.append(event)
+
+        review_seen = False
+        verdict = "no deliveries"
+        first_delivery_index = None
+        first_delivery = None
+        for index, event in enumerate(events):
+            role, kind = event.get("role"), event.get("kind")
+            if role == "menxia" and kind == "independent_review":
+                review_seen = True
+            if role == "zhongshu" and kind == "delivery":
+                first_delivery_index = index
+                first_delivery = event
+                break
+
+        if first_delivery is not None:
+            if review_seen:
+                verdict = "review precedes first delivery"
+            else:
+                text = str(first_delivery.get("text", "")).lower()
+                if any(term in text for term in marker_terms):
+                    verdict = "first delivery marked retroactive/provisional"
+                else:
+                    target_ts = first_delivery.get("ts")
+                    correction_errors = []
+                    corrected = False
+                    for event in events[(first_delivery_index or 0) + 1:]:
+                        if event.get("kind") != "delivery_correction":
+                            continue
+                        try:
+                            correction = _json.loads(str(event.get("text", "")))
+                        except ValueError:
+                            correction = None
+                        if not isinstance(correction, dict):
+                            correction_errors.append("text must be a JSON object")
+                            continue
+                        if event.get("status") != "ok":
+                            correction_errors.append("status must be ok")
+                            continue
+                        if correction.get("target_delivery_ts") != target_ts:
+                            correction_errors.append("target_delivery_ts must match first delivery")
+                            continue
+                        if correction.get("classification") not in {"retroactive", "provisional"}:
+                            correction_errors.append("classification must be retroactive or provisional")
+                            continue
+                        if not isinstance(correction.get("reason"), str) or not correction["reason"].strip():
+                            correction_errors.append("reason must be non-empty")
+                            continue
+                        evidence = event.get("evidence")
+                        if not isinstance(evidence, str) or not evidence.strip():
+                            correction_errors.append("evidence must be non-empty")
+                            continue
+                        corrected = True
+                        verdict = "first delivery has append-only retroactive/provisional correction"
+                        break
+                    if not corrected:
+                        detail = f"; invalid correction: {correction_errors[0]}" if correction_errors else ""
+                        fail(
+                            "task ledger delivery precedes independent review "
+                            f"without retroactive/provisional marker: {ledger.name}{detail}",
+                            failures,
+                        )
+                        verdict = None
+        if verdict:
+            print(f"PASS task ledger sequencing: {ledger.name} ({verdict})")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Lint the AgentOS kernel and memory contract")
     parser.add_argument(
@@ -813,6 +963,7 @@ def main(argv: list[str] | None = None) -> int:
 
     lint_artifact_contracts(failures)
     lint_memory_contracts(failures)
+    lint_task_ledger_sequencing(failures)
 
     for directory in REQUIRED_DIRS:
         if not (ROOT / directory).is_dir():

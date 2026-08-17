@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This adapter standard defines when an AgentOS workflow worker is visible enough for Master ZX to audit.
+This adapter standard defines when an AgentOS workflow worker is visible enough for the owner to audit.
 
 For Codex it supports `agent-os/adapters/codex-workflow.md`. For Claude it
 describes evidence boundaries for Claude's native Workflow; it does not install
@@ -33,6 +33,8 @@ codex_worker_visibility:
   cwd:
   source:
   creation_route: codex_app.create_thread | codex_app.send_message_to_thread | codex_app_server | other
+  environment: local
+  role_skill_receipt: task ledger skill_load/ok with matching SKILL.md hashes
   list_threads:
     status:
     evidence:
@@ -113,5 +115,5 @@ This worker is tool-readable and listable, but user-visible auditability is not 
 Forbidden without UI-open or equivalent evidence:
 
 ```text
-Master ZX can audit this worker in Codex Desktop.
+the owner can audit this worker in Codex Desktop.
 ```

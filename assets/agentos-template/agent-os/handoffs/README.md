@@ -1,19 +1,6 @@
 # Agent OS Handoffs
 
-Handoff records for this Agent OS live in this directory.
-
-Use this minimum shape:
-
-```yaml
-handoff:
-  active_user_object:
-  task_contract:
-  current_route:
-  completed_evidence:
-  evidence_gaps:
-  blockers:
-  side_routes_parked:
-  next_safe_action:
-```
-
-Do not write unverified claims into handoff as settled facts. Run Evidence-to-Claim Gate first.
+Runtime handoff records may land in this directory. Their shape and evidence
+rules are owned by `agent-os/review/task-contract.md` (session-local state)
+and the root `HANDOFF.md` ledger (`agent-os/memory/routing.md`); run the
+Evidence-to-Claim Gate before writing any claim here.

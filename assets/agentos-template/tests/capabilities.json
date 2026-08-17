@@ -5,8 +5,12 @@
       "id": "C01",
       "name": "Long-task finish line",
       "user_visible_contract": "Long work has observable finish conditions, only required open items, and evidence for every completed condition.",
-      "decision_sources": ["agent-os/review/task-contract.md"],
-      "deterministic_tests": ["tests/unit/test_active_work.py::ActiveWorkContractTests::test_done_task_needs_each_condition_exactly_once_with_evidence"],
+      "decision_sources": [
+        "agent-os/review/task-contract.md"
+      ],
+      "deterministic_tests": [
+        "tests/unit/test_active_work.py::ActiveWorkContractTests::test_done_task_needs_each_condition_exactly_once_with_evidence"
+      ],
       "runtime_evidence_required": "A pending long task must survive a Hook round trip and become delivered only after the recheck.",
       "live_evidence_required": "A real long Codex task stops at its accepted finish line without adding unrelated work."
     },
@@ -14,8 +18,12 @@
       "id": "C02",
       "name": "Attention restoration",
       "user_visible_contract": "Startup, resume, clear, and compact restore only the current long-task goal, finish conditions, open items, and next action.",
-      "decision_sources": ["agent-os/boot.md"],
-      "deterministic_tests": ["tests/integration/test_runtime_adapters.py::RuntimeAdapterContractTests::test_session_start_restores_only_minimal_long_task_state"],
+      "decision_sources": [
+        "agent-os/rules-card.md"
+      ],
+      "deterministic_tests": [
+        "tests/integration/test_runtime_adapters.py::RuntimeAdapterContractTests::test_session_start_restores_only_minimal_long_task_state"
+      ],
       "runtime_evidence_required": "Both runtime adapters inject the same minimal state shape.",
       "live_evidence_required": "A resumed or compacted Codex task recovers its next action without treating old state as permission."
     },
@@ -23,8 +31,12 @@
       "id": "C03",
       "name": "Real user message reconsideration",
       "user_visible_contract": "Every real user message is reconsidered as continuation, correction, replacement, or unrelated work; an internal delivery continuation is skipped.",
-      "decision_sources": ["agent-os/rules-card.md"],
-      "deterministic_tests": ["tests/integration/test_runtime_adapters.py::RuntimeAdapterContractTests::test_user_prompt_reconsiders_every_real_message_but_skips_stop_continuation"],
+      "decision_sources": [
+        "agent-os/rules-card.md"
+      ],
+      "deterministic_tests": [
+        "tests/integration/test_runtime_adapters.py::RuntimeAdapterContractTests::test_user_prompt_reconsiders_every_real_message_but_skips_stop_continuation"
+      ],
       "runtime_evidence_required": "Both adapters inject the reminder for real prompts and stay silent for the internal marker.",
       "live_evidence_required": "A mid-task correction changes only the requested part and then resumes unaffected work."
     },
@@ -32,26 +44,45 @@
       "id": "C04",
       "name": "Mechanical tool boundaries",
       "user_visible_contract": "Tool hooks do not guess intent from Shell text and do not block ordinary reading commands.",
-      "decision_sources": [".codex/hooks/aos_guard_enforcer.py", ".codex/hooks/aos_kernel_lint.py"],
-      "deterministic_tests": ["tests/integration/test_runtime_adapters.py::RuntimeAdapterContractTests::test_shell_read_probes_are_never_semantically_classified"],
+      "decision_sources": [
+        ".codex/hooks/aos_chain_gate.py",
+        ".codex/hooks/aos_kernel_lint.py"
+      ],
+      "deterministic_tests": [
+        "tests/integration/test_runtime_adapters.py::RuntimeAdapterContractTests::test_shell_read_probes_are_never_semantically_classified"
+      ],
       "runtime_evidence_required": "Common read commands and composed reads produce no permission decision or goal reminder.",
       "live_evidence_required": "A real Codex task runs cat, test -e, a quoted alternation search, and a read pipeline without false blocking."
     },
     {
       "id": "C05",
-      "name": "Single Codex delegation backend",
-      "user_visible_contract": "Codex delegates only through the vendored Dynamic Workflow runner while Claude keeps native Workflow.",
-      "decision_sources": ["agent-os/adapters/codex-workflow.md"],
-      "deterministic_tests": ["tests/integration/test_runtime_adapters.py::RuntimeAdapterContractTests::test_codex_blocks_native_delegation_and_allows_vendored_runner"],
-      "runtime_evidence_required": "Native Codex delegation is denied and the vendored runner command is not denied.",
-      "live_evidence_required": "A delegated Codex canary shows one execution engine."
+      "name": "Chain order enforced on identity and ledger",
+      "user_visible_contract": "On both runtimes the seat order (menxia pass → shangshu → executors → integration → delivery) is enforced by the chain gate on seat identity and the task ledger; Codex seats use Desktop codex_app project threads and Claude seats remain .claude/agents.",
+      "decision_sources": [
+        "agent-os/adapters/codex-workflow.md",
+        ".codex/hooks/aos_chain_gate.py",
+        ".claude/hooks/aos_chain_gate.py"
+      ],
+      "deterministic_tests": [
+        "tests/unit/test_chain_gate.py::GateCase::test_shangshu_needs_menxia_pass",
+        "tests/unit/test_chain_gate.py::GateCase::test_executor_is_spawned_by_shangshu_after_dispatch_only",
+        "tests/unit/test_chain_gate.py::GateCase::test_codex_send_message_to_thread_enforces_seat_order",
+        "tests/integration/test_runtime_adapters.py::RuntimeAdapterContractTests::test_both_runtimes_wire_the_chain_gate_and_no_runner_guard_remains"
+      ],
+      "runtime_evidence_required": "A live chain run on each runtime shows a denied premature create/send/write with the gate's reason and a completed chain with hook-stamped seat records.",
+      "live_evidence_required": "One real task per runtime passes through menxia → shangshu → executor → integration → delivery with the gate active."
     },
     {
       "id": "C06",
       "name": "One long-task delivery recheck",
       "user_visible_contract": "A finished or blocked long task gets one same-model delivery recheck; a short reply is delivered immediately.",
-      "decision_sources": ["agent-os/workflows/agent-execution-lifecycle.md"],
-      "deterministic_tests": ["tests/integration/test_runtime_adapters.py::RuntimeAdapterContractTests::test_pending_long_task_stops_once_then_marks_delivered", "tests/integration/test_runtime_adapters.py::RuntimeAdapterContractTests::test_short_reply_has_no_forced_second_generation"],
+      "decision_sources": [
+        "agent-os/workflows/agent-execution-lifecycle.md"
+      ],
+      "deterministic_tests": [
+        "tests/integration/test_runtime_adapters.py::RuntimeAdapterContractTests::test_pending_long_task_stops_once_then_marks_delivered",
+        "tests/integration/test_runtime_adapters.py::RuntimeAdapterContractTests::test_short_reply_has_no_forced_second_generation"
+      ],
       "runtime_evidence_required": "Pending becomes delivered on the second Stop and no-state Stop stays silent.",
       "live_evidence_required": "A real long-task final is rechecked once while a direct one-sentence question is not regenerated."
     },
@@ -59,10 +90,50 @@
       "id": "C07",
       "name": "Plain direct reporting",
       "user_visible_contract": "Replies default to simple natural language without hiding decisions, risks, evidence boundaries, or remaining work.",
-      "decision_sources": ["agent-os/rules-card.md"],
-      "deterministic_tests": ["tests/scenarios/test_instruction_stack_contract.py::InstructionStackContractTests::test_plain_language_is_default_without_fixed_length_scoring"],
+      "decision_sources": [
+        "agent-os/rules-card.md"
+      ],
+      "deterministic_tests": [
+        "tests/scenarios/test_instruction_stack_contract.py::InstructionStackContractTests::test_plain_language_is_default_without_fixed_length_scoring"
+      ],
       "runtime_evidence_required": "Resident rules and the long-task Stop prompt carry the same delivery principle without a style scorer.",
       "live_evidence_required": "A real Codex report is understandable without session context and does not dump internal mechanics."
+    },
+    {
+      "id": "C08",
+      "name": "Visible role and skill initialization",
+      "user_visible_contract": "Every Codex role is visibly titled in the current project, uses a local thread, and cannot perform phase work until its role-bound native skills have a matching hash receipt.",
+      "decision_sources": [
+        "agent-os/adapters/codex-workflow.md",
+        "agent-os/skills/seat-skills.json",
+        ".codex/hooks/aos_chain_gate.py"
+      ],
+      "deterministic_tests": [
+        "tests/unit/test_chain_gate.py::GateCase::test_relay_creates_the_zhongshu_thread_on_codex_and_hook_registers_it",
+        "tests/unit/test_chain_gate.py::GateCase::test_codex_seat_create_requires_local_environment_and_skill_prompt",
+        "tests/unit/test_chain_gate.py::GateCase::test_phase_work_requires_hashed_role_skill_receipt",
+        "tests/unit/test_skill_receipt.py::SkillReceiptTests::test_receipt_records_runtime_names_and_hashes_once"
+      ],
+      "runtime_evidence_required": "Session metadata lists project skills; each seat transcript reads its mapped SKILL.md files; the task ledger contains valid skill_load receipts for Zhongshu, Menxia, Shangshu, and Executor.",
+      "live_evidence_required": "A real Codex task shows 中书省, 门下省, 尚书省, and 执行体 threads simultaneously through final delivery, all in the saved project, with no worktree setup failure."
+    },
+    {
+      "id": "C09",
+      "name": "Opt-in chain through one relay skill",
+      "user_visible_contract": "Ordinary chat is the default on both runtimes; the three-departments chain starts only when the user invokes the `agentos` skill, whose session becomes a courier (relay) that records the user's exact words, opens 中书省, and carries messages verbatim both ways; unbound sessions see silent hooks; pause/stop/resume are relay records.",
+      "decision_sources": [
+        ".agents/skills/agentos/SKILL.md",
+        ".claude/skills/agentos/SKILL.md",
+        "agent-os/rules-card.md",
+        "agent-os/workflows/zhongshu.md",
+        ".claude/agents/agentos-zhongshu.md",
+        ".codex/agents/agentos-zhongshu.toml"
+      ],
+      "deterministic_tests": [
+        "tests/scenarios/test_instruction_stack_contract.py::InstructionStackContractTests::test_chain_is_opt_in_through_one_relay_skill_on_both_runtimes"
+      ],
+      "runtime_evidence_required": "Hook tests show an unbound session produces no injection, deny, or Stop block, and a relay create binds the session and denies --done-when, a non-verbatim goal, or a bad task id.",
+      "live_evidence_required": "A plain session in a project chats without any AgentOS output; `$agentos`/`/agentos` on a real task opens 中书省｜<readable-task-title>｜<task-id> and the user's exact words reach it unchanged; every seat repeats the same title and id; the delivery returns verbatim; the session is ordinary chat afterwards."
     }
   ]
 }

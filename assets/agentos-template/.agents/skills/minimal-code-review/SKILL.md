@@ -12,14 +12,12 @@ Thin Codex adapter for the repo-local Agent OS kernel.
 Read:
 
 ```text
-agent-os/boot.md
-agent-os/router.md
 agent-os/review/minimal-code-gate.md
 ```
 
 ## Trigger
 
-Use before writing code, adding a dependency, or adding a feature. Not for pure conversation, docs, or analysis.
+Use before writing code, adding a dependency, adding a feature, or producing any delivered work product — documents, tests, worker dispatches, state updates — the gate governs minimal WORK, not code alone. Not for pure conversation or analysis.
 
 ## Output Shape
 

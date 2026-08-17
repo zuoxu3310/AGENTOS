@@ -33,20 +33,19 @@
             "statusMessage": "Rechecking long-task delivery"
           }
         ]
-      }
-    ],
-    "PreToolUse": [
+      },
       {
-        "matcher": "^(Agent|Task|Workflow|spawn_agent|collab)$",
         "hooks": [
           {
             "type": "command",
-            "command": "PYTHONDONTWRITEBYTECODE=1 python3 -c \"from pathlib import Path; import runpy, sys; p=Path.cwd(); r=next((q for q in (p,*p.parents) if (q/'agent-os').is_dir()), p); sys.path.insert(0, str(r/'.codex/hooks')); runpy.run_path(str(r/'.codex/hooks'/sys.argv[1]), run_name='__main__')\" aos_guard_enforcer.py",
+            "command": "PYTHONDONTWRITEBYTECODE=1 python3 -c \"from pathlib import Path; import runpy, sys; p=Path.cwd(); r=next((q for q in (p,*p.parents) if (q/'agent-os').is_dir()), p); sys.path.insert(0, str(r/'.codex/hooks')); runpy.run_path(str(r/'.codex/hooks'/sys.argv[1]), run_name='__main__')\" aos_chain_gate.py",
             "timeout": 30,
-            "statusMessage": "Checking the single delegation backend"
+            "statusMessage": "AgentOS chain gate (stop)"
           }
         ]
-      },
+      }
+    ],
+    "PreToolUse": [
       {
         "matcher": "^(Bash|shell|exec_command|Agent|Task|Workflow|spawn_agent|collab)$",
         "hooks": [
@@ -57,9 +56,31 @@
             "statusMessage": "Checking Prompt Craft Gate structure"
           }
         ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PYTHONDONTWRITEBYTECODE=1 python3 -c \"from pathlib import Path; import runpy, sys; p=Path.cwd(); r=next((q for q in (p,*p.parents) if (q/'agent-os').is_dir()), p); sys.path.insert(0, str(r/'.codex/hooks')); runpy.run_path(str(r/'.codex/hooks'/sys.argv[1]), run_name='__main__')\" aos_chain_gate.py",
+            "timeout": 30,
+            "statusMessage": "AgentOS chain gate"
+          }
+        ]
       }
     ],
     "PostToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PYTHONDONTWRITEBYTECODE=1 python3 -c \"from pathlib import Path; import runpy, sys; p=Path.cwd(); r=next((q for q in (p,*p.parents) if (q/'agent-os').is_dir()), p); sys.path.insert(0, str(r/'.codex/hooks')); runpy.run_path(str(r/'.codex/hooks'/sys.argv[1]), run_name='__main__')\" aos_chain_gate.py",
+            "timeout": 30,
+            "statusMessage": "AgentOS chain gate (post tool)"
+          }
+        ]
+      },
       {
         "matcher": "^(apply_patch|Edit|Write|MultiEdit)$",
         "hooks": [
@@ -68,6 +89,18 @@
             "command": "PYTHONDONTWRITEBYTECODE=1 python3 -c \"from pathlib import Path; import runpy, sys; p=Path.cwd(); r=next((q for q in (p,*p.parents) if (q/'agent-os').is_dir()), p); sys.path.insert(0, str(r/'.codex/hooks')); runpy.run_path(str(r/'.codex/hooks'/sys.argv[1]), run_name='__main__')\" aos_kernel_lint.py",
             "timeout": 60,
             "statusMessage": "Running AgentOS lint"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PYTHONDONTWRITEBYTECODE=1 python3 -c \"from pathlib import Path; import runpy, sys; p=Path.cwd(); r=next((q for q in (p,*p.parents) if (q/'agent-os').is_dir()), p); sys.path.insert(0, str(r/'.codex/hooks')); runpy.run_path(str(r/'.codex/hooks'/sys.argv[1]), run_name='__main__')\" aos_chain_gate.py",
+            "timeout": 30,
+            "statusMessage": "AgentOS chain gate (subagent stop)"
           }
         ]
       }

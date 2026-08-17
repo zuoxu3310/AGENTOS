@@ -47,6 +47,63 @@ def runtime_session(data: dict) -> str:
     return str(data.get("session_id") or data.get("conversation_id") or "anonymous")
 
 
+RELAY_SEAT = "agentos-relay"
+
+
+def _safe(value: str) -> str:
+    import re
+    return re.sub(r"[^A-Za-z0-9._-]", "_", value or "anonymous")[:160]
+
+
+def _delivery_epoch(root: Path, task_id: str) -> float | None:
+    """Epoch seconds of the latest zhongshu delivery in a task ledger, else None."""
+    from datetime import datetime
+    path = root / "agent-os" / "state" / "tasks" / f"{_safe(task_id)}.jsonl"
+    latest = None
+    try:
+        for raw in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            try:
+                event = json.loads(raw)
+            except ValueError:
+                continue
+            if event.get("role") == "zhongshu" and event.get("kind") == "delivery":
+                try:
+                    stamp = datetime.fromisoformat(str(event.get("ts"))).timestamp()
+                except (TypeError, ValueError):
+                    stamp = float("inf")
+                latest = stamp if latest is None else max(latest, stamp)
+    except OSError:
+        return None
+    return latest
+
+
+def chain_binding(root: Path, runtime: str, data: dict) -> dict | None:
+    """The mechanical fact every hook keys on: is this session on the chain?
+    Seat subagents/threads are bound by identity (agent_type or the session
+    mapping the chain gate wrote); a main session is bound only while it is
+    the relay of a task that was started by the `agentos` skill and is not
+    paused/stopped/delivered. None → the hook must be a silent no-op."""
+    agent_type = str(data.get("agent_type") or "")
+    if agent_type.startswith("agentos-") and agent_type != "agentos-entry" and data.get("agent_id"):
+        return {"seat": agent_type, "task_id": None}
+    path = root / "agent-os" / "state" / "sessions" / f"{runtime}-{_safe(runtime_session(data))}.json"
+    try:
+        mapping = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if not isinstance(mapping, dict) or not mapping.get("seat"):
+        return None
+    if mapping.get("seat") == RELAY_SEAT:
+        if mapping.get("bound") is False:
+            return None
+        task_id = mapping.get("task_id")
+        if task_id:
+            delivered = _delivery_epoch(root, str(task_id))
+            if delivered is not None and delivered > float(mapping.get("ts") or 0):
+                return None
+    return mapping
+
+
 def active_work_module(root: Path):
     tools_dir = root / "agent-os" / "tools"
     value = str(tools_dir)

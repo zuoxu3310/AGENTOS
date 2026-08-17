@@ -26,7 +26,7 @@ extension:
   vendor/AgentChat/    (free web-AI channel via Chrome CDP, MIT, pinned clone)
 
 verification:
-  smoke runs recorded under outputs/fusion-runs/.
+  smoke runs recorded under agent-os/state/fusion-runs/.
 ```
 
 Vendor code is reused, not rewritten. Do not fork vendor internals into the kernel.
@@ -34,7 +34,7 @@ Vendor code is reused, not rewritten. Do not fork vendor internals into the kern
 ## Entry Criteria — Manual Only
 
 Run Fusion ONLY when the latest user message explicitly invokes it (`/fusion`,
-"跑 Fusion", or an equivalent direct request from Master ZX).
+"跑 Fusion", or an equivalent direct request from the owner).
 
 ```text
 forbidden:
@@ -43,7 +43,7 @@ forbidden:
   - silently escalating any other workflow into a Fusion run
 ```
 
-Decided by Master ZX on 2026-07-06.
+Decided by the owner on 2026-07-06.
 
 ## Channels And Cost Gate
 
@@ -53,7 +53,7 @@ channels:
     engine: vendor/AgentChat (Chrome CDP -> free web AIs)
     token_cost: zero
     precondition: Chrome debug session up and logged in (user-side)
-  cli:                        # only when Master ZX names it in the invocation
+  cli:                        # only when the owner names it in the invocation
     panelists:
       gpt: codex CLI (vendor run_codex.sh, stdin prompt, subscription quota)
       gemini: gemini CLI (adapter run_gemini_cli.sh, free-tier quota)
@@ -61,11 +61,11 @@ channels:
 cost_gate:
   - free is the default; cli runs only when the invocation names it.
   - in-session panelists default to the cheapest model tier (haiku).
-  - Fable/Opus-tier panelists require prior count+cost approval from Master ZX
+  - Fable/Opus-tier panelists require prior count+cost approval from the owner
     (rule origin: wiki/errors/2026-07-06-expensive-subagents-without-approval.md).
   - the judge is a dedicated cold subagent, never the orchestrator session. It
     inherits the main-session model tier by default — one /fusion invocation
-    carries the cost of exactly one judge; Master ZX may name a different tier
+    carries the cost of exactly one judge; the owner may name a different tier
     in the trigger.
   - never silently switch a failed free run to the cli channel; report instead.
 ```
@@ -162,7 +162,7 @@ dispatches the round (the judge cannot spawn agents) — each surviving panelist
 gets the OTHERS' anonymized answers and gives a short critique/defense of the
 disputed point only (not a rewrite); replies go back to the judge. Free
 channel: allowed by default (zero token cost, adds latency). CLI channel: needs
-Master ZX's go-ahead (extra spend). Never loop more than one extra round.
+the owner's go-ahead (extra spend). Never loop more than one extra round.
 
 ## Execution Model
 
@@ -191,7 +191,7 @@ Master ZX's go-ahead (extra spend). Never loop more than one extra round.
    working parts onto the stronger base, run the merged result until it passes.
    Track B research: Consensus / Contradictions / Partial coverage / Unique
    insights / Blind spots, then a grounded answer.
-7. Persist provenance to outputs/fusion-runs/ (question, every raw answer with
+7. Persist provenance to agent-os/state/fusion-runs/ (question, every raw answer with
    the label-to-model mapping, analysis or arbitration brief, fused answer,
    degradation notes).
 8. The orchestrator verifies the judge's synthesis through the Promotion and
@@ -214,7 +214,7 @@ reasoning from memory; a dropped panelist is absent, never silent agreement.
 ## Completion Evidence
 
 ```text
-- provenance file exists under outputs/fusion-runs/ and names the panel
+- provenance file exists under agent-os/state/fusion-runs/ and names the panel
 - >=2 independent raw answers recorded (or an explicit failure report)
 - degradation notes recorded for every dropped panelist
 - the judge was a separate cold agent; its full input set is contained in the

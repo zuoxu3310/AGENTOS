@@ -66,17 +66,40 @@ class InstallerBehaviorTests(unittest.TestCase):
         self.assertEqual("ok", manifest["status"], manifest["failures"])
         claude = json.loads((target / ".claude/settings.json").read_text(encoding="utf-8"))
         codex = json.loads((target / ".codex/hooks.json").read_text(encoding="utf-8"))
-        for document in (claude, codex):
+        for document, expected in ((claude, 2), (codex, 2)):
             commands = agentos_stop_commands(document)
-            self.assertEqual(1, len(commands), commands)
-            self.assertIn("aos_stop_gate.py", commands[0])
+            self.assertEqual(expected, len(commands), commands)
+            gates = [c for c in commands if "aos_stop_gate.py" in c]
+            self.assertEqual(1, len(gates), commands)
+            extras = [c for c in commands if "aos_stop_gate.py" not in c]
+            for extra in extras:
+                self.assertIn("aos_chain_gate.py", extra)
         config_text = (target / ".codex/config.toml").read_text(encoding="utf-8")
         config = tomllib.loads(config_text)
         self.assertIs(config["features"]["hooks"], True)
         self.assertIn(installer.AGENTOS_DEV_BEGIN, config["developer_instructions"])
         self.assertEqual(1, config_text.count("[features]"))
-        self.assertTrue((target / ".agents/skills/dynamic-workflow/SKILL.md").is_file())
+        self.assertFalse((target / ".agents/skills/dynamic-workflow/SKILL.md").exists())
         self.assertFalse((target / ".claude/skills/dynamic-workflow/SKILL.md").exists())
+        for seat in ("agentos-menxia", "agentos-shangshu", "agentos-executor", "agentos-yushi"):
+            self.assertTrue((target / f".codex/agents/{seat}.toml").is_file())
+        self.assertTrue((target / ".codex/hooks/aos_chain_gate.py").is_file())
+        self.assertTrue((target / ".claude/hooks/aos_chain_gate.py").is_file())
+        self.assertEqual(
+            (target / ".codex/hooks/aos_chain_gate.py").read_bytes(),
+            (target / ".claude/hooks/aos_chain_gate.py").read_bytes(),
+        )
+        seat_skills = json.loads((target / "agent-os/skills/seat-skills.json").read_text(encoding="utf-8"))
+        self.assertEqual(
+            {"zhongshu", "menxia", "shangshu", "executor", "yushi"},
+            set(seat_skills),
+        )
+        self.assertTrue(all(seat_skills.values()))
+        self.assertIn("sha256", (target / "agent-os/tools/aos_skill_receipt.py").read_text(encoding="utf-8"))
+        chain_gate = (target / ".codex/hooks/aos_chain_gate.py").read_text(encoding="utf-8")
+        self.assertIn("valid_skill_receipt", chain_gate)
+        self.assertIn('environment != "local"', chain_gate)
+        self.assertIn("用户尚未看到本轮最终交付", chain_gate)
         self.assertFalse((target / ".codex/agentos-local-rules.md").exists())
         self.assertTrue((target / "agent-os/artifact-contracts.toml").is_file())
         agents = (target / "AGENTS.md").read_text(encoding="utf-8")
@@ -88,13 +111,14 @@ class InstallerBehaviorTests(unittest.TestCase):
             managed,
         )
         self.assertTrue((target / "agent-os/adapters/codex-workflow.md").is_file())
-        self.assertTrue((target / "vendor/claude-dynamic-workflows-codex/runner/bin/run-workflow.js").is_file())
-        self.assertTrue((target / "vendor/claude-dynamic-workflows-codex/LICENSE").is_file())
-        self.assertTrue((target / "vendor/claude-dynamic-workflows-codex.AGENTOS.md").is_file())
+        self.assertFalse((target / "vendor/claude-dynamic-workflows-codex").exists())
         workflow = (target / "agent-os/adapters/codex-workflow.md").read_text(encoding="utf-8").lower()
-        self.assertIn("one delegated execution engine", workflow)
-        self.assertNotIn("optional external runner", workflow)
-        self.assertNotIn("spawn_agent", workflow)
+        self.assertIn("codex_app.create_thread", workflow)
+        self.assertIn("codex_app.send_message_to_thread", workflow)
+        self.assertIn("environment.type=local", workflow)
+        self.assertIn("aos_skill_receipt.py", workflow)
+        self.assertNotIn("no_delegation", workflow)
+        self.assertIn("spawn_agent", workflow)
         self.assertFalse((target / "agent-os/workflows/dynamic-workflow.md").exists())
         self.assertIn("native Workflow", (target / "CLAUDE.md").read_text(encoding="utf-8"))
         self.assertIn("keeps Superpowers enabled", (target / "CLAUDE.md").read_text(encoding="utf-8"))
@@ -164,8 +188,10 @@ class InstallerBehaviorTests(unittest.TestCase):
             self.assertIn("python3 tools/user_stop.py", hook_commands(document, "Stop"))
             self.assertIn("python3 tools/user_guard.py", hook_commands(document, "PreToolUse"))
             agentos_commands = agentos_stop_commands(document)
-            self.assertEqual(1, len(agentos_commands), agentos_commands)
-            self.assertIn("aos_stop_gate.py", agentos_commands[0])
+            gates = [c for c in agentos_commands if "aos_stop_gate.py" in c]
+            self.assertEqual(1, len(gates), agentos_commands)
+            for extra in (c for c in agentos_commands if "aos_stop_gate.py" not in c):
+                self.assertIn("aos_chain_gate.py", extra)
 
         config_text = config_path.read_text(encoding="utf-8")
         config = tomllib.loads(config_text)
@@ -203,6 +229,19 @@ class InstallerBehaviorTests(unittest.TestCase):
                 installer.AGENTOS_DEV_BEGIN
             ),
         )
+
+    def test_reinstall_retires_forced_entry_agent_key_and_file(self) -> None:
+        target = self.root / "entry-agent"
+        write_json(target / ".claude/settings.json", {"agent": "agentos-entry", "userKey": 1, "hooks": {}})
+        old_agent = target / ".claude/agents/agentos-entry.md"
+        old_agent.parent.mkdir(parents=True, exist_ok=True)
+        old_agent.write_text("old forced seat\n", encoding="utf-8")
+        manifest = installer.install(TEMPLATE, target, dry_run=False)
+        self.assertEqual("ok", manifest["status"], manifest["failures"])
+        settings = json.loads((target / ".claude/settings.json").read_text(encoding="utf-8"))
+        self.assertNotIn("agent", settings)
+        self.assertEqual(1, settings["userKey"])
+        self.assertFalse(old_agent.exists())
 
     def test_reinstall_preserves_existing_state_and_wiki_bytes(self) -> None:
         target = self.root / "reinstall"
@@ -246,6 +285,11 @@ class InstallerBehaviorTests(unittest.TestCase):
         (obsolete_directory / "SKILL.md").write_text(
             "OLD CLAUDE ADAPTER\n", encoding="utf-8"
         )
+        retired_relatives = installer.OBSOLETE_AGENTOS_PATHS[-2:]
+        for relative in retired_relatives:
+            path = target / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("RETIRED CONTROLLER ARTIFACT\n", encoding="utf-8")
         user_state = target / "agent-os/state/audit-log.md"
         user_state.parent.mkdir(parents=True, exist_ok=True)
         user_state.write_text("PRESERVED HISTORY\n", encoding="utf-8")
@@ -258,6 +302,11 @@ class InstallerBehaviorTests(unittest.TestCase):
         )
         self.assertTrue(obsolete_file.exists())
         self.assertTrue(obsolete_directory.exists())
+        for relative in retired_relatives:
+            self.assertEqual(
+                "backed-up-and-removed-obsolete", dry_actions[relative]["action"]
+            )
+            self.assertTrue((target / relative).exists())
 
         second = installer.install(TEMPLATE, target, dry_run=False)
         self.assertEqual("ok", second["status"])
@@ -265,6 +314,7 @@ class InstallerBehaviorTests(unittest.TestCase):
         for relative in (
             ".codex/agentos-local-rules.md",
             ".claude/skills/dynamic-workflow",
+            *retired_relatives,
         ):
             self.assertEqual(
                 "backed-up-and-removed-obsolete", actions[relative]["action"]

@@ -1,31 +1,27 @@
 # AgentOS
 
-AgentOS is a repo-local operating layer for Codex and Claude Code. It keeps work centered on the user's real result, explicit finish conditions, matching evidence, plain-language delivery, and selective project memory.
+AgentOS is a repo-local operating layer for Codex Desktop and Claude Code: an opt-in three-departments chain (三省六部) whose order is enforced by hooks on mechanical facts.
 
 Core boundary:
-- The main model and reusable skills perform semantic judgment.
-- Hooks restore attention or check deterministic runtime facts.
-- Hooks do not classify user intent, action importance, route correctness, or answer quality.
+- Seats (中书 / 门下 / 尚书 / executor / 御史) and their skills perform semantic judgment.
+- Hooks enforce only who is calling and what the append-only task ledger says; they never classify intent from keywords.
+- Unbound sessions are ordinary chat with silent hooks.
 
-Runtime flow:
-1. SessionStart restores the current long-task goal, finish conditions, open items, and next action.
-2. UserPromptSubmit asks the model to reinterpret every real user message.
-3. PreToolUse guards only deterministic boundaries such as Codex's single delegated workflow backend and worker-prompt structure.
-4. PostToolUse lints governed files only after structured edits.
-5. Stop gives a completed or blocked long-task delivery one same-model reread; short replies are not forced through it.
+Flow:
+1. The user invokes the `agentos` skill (`$agentos` Codex, `/agentos` Claude). The session becomes the relay: it records the exact words and opens `中书省｜<task>`.
+2. 中书 sends the RAW increment to 门下 (Phase A independent), then its candidate (Phase B verdict), and records the contract after pass.
+3. 尚书 records dispatch, creates the one-shot executor (the only writer), verifies, records integration.
+4. 中书 verifies against done_when and records delivery; the relay returns it verbatim and unbinds. 御史 records confirmed mistakes in the background.
 
 Canonical sources:
 - `assets/agentos-template/agent-os/rules-card.md`: resident behavior.
-- `assets/agentos-template/agent-os/review/task-contract.md`: long-task finish line and state.
-- `assets/agentos-template/agent-os/workflows/agent-execution-lifecycle.md`: execution and delivery lifecycle.
-- `assets/agentos-template/agent-os/memory/routing.md`: memory operating contract.
-- `assets/agentos-template/agent-os/adapters/codex-workflow.md`: Codex Dynamic Workflow boundary.
+- `assets/agentos-template/agent-os/workflows/{zhongshu,menxia,shangshu,executor,yushi}.md`: seat methods.
+- `assets/agentos-template/agent-os/workflows/cognition.md`: the judgment procedure every seat runs.
+- `assets/agentos-template/.claude/skills/agentos/SKILL.md`: the relay procedure.
+- `assets/agentos-template/.claude/hooks/aos_chain_gate.py`: the shared chain gate.
+- `assets/agentos-template/agent-os/adapters/codex-workflow.md`: Codex Desktop transport.
 
-Install:
-`python3 scripts/install-agentos.py /path/to/project`
+Install: `python3 scripts/install-agentos.py /path/to/project`
+Validate: `python3 scripts/validate-agentos-install.py /path/to/project` and `python3 /path/to/project/agent-os/tools/aos-lint.py`
 
-Validate:
-`python3 scripts/validate-agentos-install.py /path/to/project`
-`python3 /path/to/project/agent-os/tools/aos-lint.py`
-
-Validation proves structure only. Hook activation must be observed in a fresh trusted runtime session.
+Validation proves structure only. Chain behaviour must be observed in a live, trusted runtime session.

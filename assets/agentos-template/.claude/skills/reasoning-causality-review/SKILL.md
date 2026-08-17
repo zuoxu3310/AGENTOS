@@ -12,14 +12,12 @@ Thin Claude adapter for the repo-local Agent OS kernel.
 Read:
 
 ```text
-agent-os/boot.md
-agent-os/router.md
 agent-os/review/reasoning-base.md
 ```
 
 ## Trigger
 
-Use for non-trivial judgment, causal explanation, root-cause analysis, blame, recommendation, first-principles reasoning, or agent drift.
+Use for any judgment, causal explanation, root-cause analysis, blame, recommendation, or first-principles reasoning.
 
 ## Output Shape
 
@@ -28,7 +26,9 @@ reasoning_review:
   active_user_object:
   claim_type:
   evidence:
+  hidden_assumptions:
   rival_explanations:
+  counterexample_or_falsifier:
   allowed_wording:
   uncertainty:
 ```

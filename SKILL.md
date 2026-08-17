@@ -34,7 +34,7 @@ python3 scripts/test_installer_behavior.py
 - Do not call a written explanation, plan, or partial copy a completed install.
 - Do not silently overwrite user files. The installer merges entry docs and root ledgers or backs up replaced files under `.agentos-backups/`.
 - Existing `agent-os/state/**` and `wiki/**` files are protected data: reinstalling may add missing template files but never replaces existing files in those trees.
-- `.claude/settings.json` and `.codex/hooks.json` are JSON-merged. Unrelated user keys and hooks survive; only AgentOS-owned `aos_*.py` hook commands are refreshed, with exactly one AgentOS Stop gate per runtime.
+- `.claude/settings.json` and `.codex/hooks.json` are JSON-merged. Unrelated user keys and hooks survive; only AgentOS-owned `aos_*.py` hook commands are refreshed, with exactly one AgentOS Stop gate per runtime (Codex additionally carries the async `aos_yushi_dispatch.py` Stop dispatcher).
 - `.codex/config.toml` is TOML-validated, then only AgentOS developer instructions and `features.hooks` are merged. Unrelated keys remain in place and no duplicate `[features]` table is emitted.
 - Invalid existing JSON or TOML remains byte-identical. The installer reports `partial`, records an explicit `merge-failed-*` action, and exits non-zero.
 - Do not install dependencies or edit global configuration.
@@ -53,16 +53,16 @@ python3 scripts/test_installer_behavior.py
 
 ## Attention And Mechanical Hooks
 
-The template wires SessionStart, UserPromptSubmit, Stop, prompt-craft, and
-governed-document lint hooks for Claude and Codex. Codex also has one
-deterministic guard that rejects native delegation so delegated work uses only
-the vendored Dynamic Workflow runner.
-
-SessionStart restores only the current session's long-task goal, finish
-conditions, open items, and next action. UserPromptSubmit reminds the main model
-to reinterpret every real user message. Stop requests one same-model delivery
-reread only when a completed or blocked long task is marked pending. Tool hooks
-do not decide intent, route, authorization, or semantic completion.
+The template wires SessionStart, UserPromptSubmit, Stop, PreToolUse,
+PostToolUse, and SubagentStop hooks for Claude and Codex, plus the `agentos`
+relay skill and the seat contracts (zhongshu, menxia, shangshu, executor,
+yushi). Every hook is silent for a session that has not invoked the `agentos`
+skill; SessionStart only says AgentOS is installed. Once the user invokes the
+skill, the session is bound as the relay and the shared chain gate
+(`aos_chain_gate.py`, byte-identical in `.claude/hooks/` and `.codex/hooks/`)
+enforces seat order on two mechanical facts only — who is calling and what the
+append-only task ledger says. Hooks never decide intent, route, authorization,
+or semantic completion.
 
 - If the target already has `.claude/settings.json`, the installer JSON-merges the hook config and never removes existing user settings.
 - Claude hooks take effect from the next Claude Code session in the target project; the first session may ask the user to approve the new project hooks.

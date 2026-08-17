@@ -7,6 +7,17 @@ failure. Fix the user-visible problem first. A record is useful only when it
 can be recalled by a real trigger and points to a protection that can be
 checked.
 
+## Ownership And Scheduling
+
+Fixing the user-visible problem is main-chain work and always comes first; for
+`recurrence >= 2` the mechanical landing ships inside that fix. Recording is
+Censorate work, off the critical path: on Claude the lead spawns
+`agentos-yushi` in the background at teardown, after delivery — nothing waits
+for it and it gates nothing. `yushi` owns `wiki/errors/` as its single writer,
+verifies landings by reading them, detects recurrence, and regenerates derived
+views. A recurrence whose mandatory landing does not exist yet is reported to
+the lead as the next chain task; the scribe never patches the kernel itself.
+
 ## Record Boundary
 
 Record a user correction, violated instruction, fabricated claim, skipped

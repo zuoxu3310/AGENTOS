@@ -27,16 +27,26 @@ MERGE_FILES = {
 JSON_HOOK_MERGE_FILES = {".claude/settings.json", ".codex/hooks.json"}
 TOML_MERGE_FILES = {".codex/config.toml"}
 MERGE_FAILURE_PREFIX = "merge-failed-"
+AGENTOS_ENTRY_BEGIN = "<!-- BEGIN AGENTOS ENTRY CONTRACT -->"
+AGENTOS_ENTRY_END = "<!-- END AGENTOS ENTRY CONTRACT -->"
+ENTRY_CONTRACT_FILES = {"AGENTS.md", "CLAUDE.md"}
 
 # Exact paths owned by older AgentOS releases and intentionally retired from
 # the current package. They are backed up before removal. Runtime state and
 # project Wiki paths never belong in this list.
 OBSOLETE_AGENTOS_PATHS = (
+    ".claude/agents/agentos-entry.md",
     ".codex/agentos-local-rules.md",
     ".codex/hooks/aos_referee.py",
     ".claude/hooks/aos_guard_enforcer.py",
     ".claude/hooks/aos_referee.py",
     ".claude/skills/dynamic-workflow",
+    ".codex/hooks/aos_guard_enforcer.py",
+    ".codex/hooks/aos_chain_entry_guard.py",
+    ".codex/hooks/aos_yushi_dispatch.py",
+    ".agents/skills/dynamic-workflow",
+    "vendor/claude-dynamic-workflows-codex",
+    "vendor/claude-dynamic-workflows-codex.AGENTOS.md",
     ".agents/skills/error-learning",
     ".agents/skills/error-neat",
     ".agents/skills/neat-freak",
@@ -49,6 +59,41 @@ OBSOLETE_AGENTOS_PATHS = (
     ".claude/skills/project-memory-bootstrap",
     ".claude/skills/wiki-maintenance",
     ".claude/skills/writing-agent-md",
+    "agent-os/boot.md",
+    ".agents/skills/think-through/SKILL.md",
+    ".agents/skills/think-through/agents/openai.yaml",
+    ".agents/skills/three-departments/SKILL.md",
+    ".claude/agents/agentos-blind-reader.md",
+    ".claude/agents/agentos-planner.md",
+    ".claude/agents/agentos-read-worker.md",
+    ".claude/agents/agentos-review-decider.md",
+    ".claude/agents/agentos-verifier.md",
+    ".claude/agents/agentos-worker.md",
+    ".claude/hooks/aos_three_departments.py",
+    ".claude/hooks/aos_turn_gate.py",
+    ".claude/skills/think-through/SKILL.md",
+    ".claude/workflows/agentos-execution.js",
+    ".claude/workflows/agentos-review.js",
+    ".codex/hooks/aos_three_departments.py",
+    ".codex/hooks/aos_turn_gate.py",
+    "agent-os/config/execution-limits.json",
+    "agent-os/config/three-departments.json",
+    "agent-os/review/turn-contract.md",
+    "agent-os/tools/aos_codex_relay.py",
+    "agent-os/tools/aos_runtime.py",
+    "agent-os/tools/aos_task_board.py",
+    "agent-os/tools/aos_turn_gate.py",
+    "agent-os/tools/run-codex-workflow.mjs",
+    "workflows/agentos-execution.workflow.js",
+    "workflows/agentos-review.workflow.js",
+    "tests/integration/test_turn_gate_hooks.py",
+    "tests/scenarios/test_agentos_execution_workflow.mjs",
+    "tests/scenarios/test_agentos_review_workflow.mjs",
+    "tests/scenarios/test_dynamic_workflow_port_contract.py",
+    "tests/scenarios/test_dynamic_workflow_worker_policy.mjs",
+    "tests/unit/test_codex_relay.py",
+    "tests/unit/test_turn_contract.py",
+    "tests/unit/test_value_task_board.py",
     "agent-os/review/per-turn-audit-gate.md",
     "agent-os/review/spokesperson-contract.md",
     "agent-os/workflows/dynamic-workflow.md",
@@ -61,6 +106,8 @@ OBSOLETE_AGENTOS_PATHS = (
     "work/reasoning-base-v1-regression-check.sh",
     "work/route-keeper-promotion-gate-v1-regression-check.sh",
     "work/task-contract-v1-regression-check.sh",
+    "agent-os/tools/aos_seat.py",
+    "tests/unit/test_seat_controller.py",
 )
 
 AGENTOS_DEV_BEGIN = "<!-- BEGIN AGENTOS CODEX DEVELOPER INSTRUCTIONS -->"
@@ -131,6 +178,14 @@ def agents_rules_block(template: Path) -> str:
     return f"{AGENTOS_RULES_BEGIN}\n{card}\n{AGENTOS_RULES_END}\n"
 
 
+def entry_contract_block(template: Path, relative_path: str) -> str:
+    """Extract the AgentOS-owned entry-identity block from the template file."""
+    text = read_text(template / relative_path)
+    begin = text.index(AGENTOS_ENTRY_BEGIN)
+    end = text.index(AGENTOS_ENTRY_END, begin) + len(AGENTOS_ENTRY_END)
+    return text[begin:end] + "\n"
+
+
 def managed_block(template: Path, relative_path: str) -> str:
     if relative_path == "AGENTS.md":
         return agents_rules_block(template)
@@ -155,7 +210,10 @@ def iter_template_files(template: Path):
             continue
         if src.name == ".DS_Store":
             continue
-        yield src, src.relative_to(template)
+        rel = src.relative_to(template)
+        if any(part in {".pytest_cache", "__pycache__"} or part.endswith(".pyc") for part in rel.parts):
+            continue  # tool caches never ship to a project
+        yield src, rel
 
 
 def backup_existing(dst: Path, rel: Path, backup_dir: Path, dry_run: bool) -> str | None:
@@ -294,6 +352,7 @@ def _canonical_incoming_hooks(incoming_hooks: dict) -> dict[str, list[dict]]:
     """Keep one AgentOS Stop gate and one copy of each incoming Hook."""
     canonical: dict[str, list[dict]] = {}
     stop_gate_seen = False
+    chain_gate_seen = False
     for event, raw_groups in incoming_hooks.items():
         groups = _validated_hook_groups(raw_groups, "template")
         canonical_groups = []
@@ -302,9 +361,16 @@ def _canonical_incoming_hooks(incoming_hooks: dict) -> dict[str, list[dict]]:
             for hook in group.get("hooks", []):
                 command = hook.get("command")
                 if event == "Stop" and is_agentos_hook_command(command):
-                    if "aos_stop_gate.py" not in command or stop_gate_seen:
+                    if "aos_stop_gate.py" in command:
+                        if stop_gate_seen:
+                            continue
+                        stop_gate_seen = True
+                    elif "aos_chain_gate.py" in command:
+                        if chain_gate_seen:
+                            continue
+                        chain_gate_seen = True
+                    else:
                         continue
-                    stop_gate_seen = True
                 kept_hooks.append(hook)
             if kept_hooks:
                 group["hooks"] = kept_hooks
@@ -372,6 +438,11 @@ def merge_hook_json(src: Path, dst: Path, dry_run: bool) -> str:
             raise ValueError("hooks-must-be-an-object")
         canonical_hooks = _canonical_incoming_hooks(template_hooks)
         changed = _remove_agentos_hooks(target_hooks)
+        # The retired opt-out design forced every Claude session into the
+        # `agentos-entry` seat; the opt-in relay design leaves sessions plain.
+        if current.get("agent") == "agentos-entry" and "agent" not in incoming:
+            current.pop("agent")
+            changed = True
         changed = _add_hook_groups(target_hooks, canonical_hooks) or changed
         changed = _merge_missing_keys(current, incoming, skip={"hooks"}) or changed
     except (TypeError, ValueError):
@@ -613,6 +684,13 @@ def install(template: Path, target: Path, dry_run: bool) -> dict:
 
         if rel.as_posix() in MERGE_FILES and dst.exists():
             action["backup"] = backup_existing(dst, rel, backup_dir, dry_run)
+            if rel.as_posix() in ENTRY_CONTRACT_FILES:
+                actions.append({
+                    "path": rel.as_posix() + "#entry-contract",
+                    "action": merge_marked_block(
+                        dst, entry_contract_block(template, rel.as_posix()), dry_run
+                    ),
+                })
             action["action"] = merge_marked_block(
                 dst, managed_block(template, rel.as_posix()), dry_run
             )
@@ -634,6 +712,23 @@ def install(template: Path, target: Path, dry_run: bool) -> dict:
             else:
                 shutil.copy2(src, dst)
         actions.append(action)
+
+    # Derived wiki views (index links, error records) depend on the merged file
+    # set, so regenerate them mechanically after every real install. The fixer
+    # touches only derived managed blocks, never semantic prose.
+    if not dry_run:
+        lint_path = target / "agent-os/tools/aos-lint.py"
+        if lint_path.is_file():
+            import subprocess
+            completed = subprocess.run(
+                [sys.executable, str(lint_path), "--fix-memory-views"],
+                cwd=target, capture_output=True, text=True, check=False,
+            )
+            actions.append({
+                "path": "wiki/index.md#derived-views",
+                "action": "memory-views-refreshed" if completed.returncode == 0
+                else "memory-views-refresh-failed",
+            })
 
     failed_actions = [
         item for item in actions

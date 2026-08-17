@@ -46,10 +46,10 @@ evidenced risk it reduces. Skip steps that do neither. Once no open item remains
 only verify and deliver; do not add a convenient mechanism, document, test, or
 cleanup task.
 
-Codex delegation uses the vendored Dynamic Workflow runner as its sole delegated
-engine. `NO_DELEGATION` means the main conversation works directly. Claude uses
-native Workflow. Worker outputs remain support material until the main model
-verifies and promotes them.
+Codex seats use interactive app-server threads started with
+`codex_app.create_thread`; follow-ups use
+`codex_app.send_message_to_thread`. Claude uses native Workflow. Worker outputs
+remain support material until the main model verifies and promotes them.
 
 ## Verification And Completion
 

@@ -35,6 +35,7 @@ Only one artifact owns each current fact.
 | `wiki/CHATS/` | Which exact user intent will need later verification? | A task depends on prior wording or scope history | Exact intent or scope must survive beyond ledgers | Distilled note, not transcript |
 | `wiki/knowledge/` | What verified reusable concept is true enough to reuse? | The present task triggers that concept | Reusable evidence passes promotion | Concept path identity |
 | `wiki/errors/` | Which confirmed failure must change a future action? | A high-risk action matches its triggers | A confirmed correction has reuse value | Same-root error record |
+| `wiki/exemplars/` | Which accepted delivery shape must this class imitate? | Producing a governed deliverable type (`agent-os/memory/exemplars.md`) | The user accepts a deliverable verbatim | Indexed exemplar file |
 | `wiki/raw/` | What original material entered the project? | A task needs that source | Source material is retained | Source file plus manifest row |
 | `wiki/docs/` | What should a human reader use? | Explicit documentation work | Human-facing documentation changes | Named document |
 | `wiki/index.md` | How can a reader reach durable Wiki memory? | Navigating Wiki memory | A durable Wiki artifact changes lifecycle | Derived link view |

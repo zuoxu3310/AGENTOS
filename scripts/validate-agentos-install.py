@@ -14,108 +14,49 @@ from pathlib import Path
 AGENTOS_HOOK_RE = re.compile(r"\baos_[A-Za-z0-9_-]+\.py\b")
 
 
-REQUIRED_FILES = [
+# The canonical presence list is parsed from the TARGET's own aos-lint.py so
+# the validator can never drift from the product's single source of truth.
+FALLBACK_CORE_FILES = [
     "AGENTS.md",
     "CLAUDE.md",
-    "PLANS.md",
-    "PROGRESS.md",
-    "DECISIONS.md",
-    "HANDOFF.md",
-    "agent-os/boot.md",
+    "agent-os/rules-card.md",
     "agent-os/router.md",
+    "agent-os/architecture.md",
     "agent-os/artifact-contracts.toml",
-    "agent-os/review/reasoning-base.md",
-    "agent-os/review/intent-causal-gate.md",
-    "agent-os/review/task-contract.md",
-    "agent-os/review/route-keeper-promotion-gate.md",
-    "agent-os/review/evidence-to-claim-gate.md",
-    "agent-os/review/completion-gate.md",
-    "agent-os/review/anti-sycophancy-gate.md",
-    "agent-os/review/minimal-code-gate.md",
-    "agent-os/review/prompt-craft-gate.md",
-    "agent-os/workflows/fusion-workflow.md",
-    ".claude/skills/prompt-craft-review/SKILL.md",
-    ".agents/skills/prompt-craft-review/SKILL.md",
-    ".agents/skills/prompt-craft-review/agents/openai.yaml",
-    ".claude/skills/fusion-workflow/SKILL.md",
+    "agent-os/tools/aos-lint.py",
+]
+
+EXTRA_REQUIRED_FILES = [
+    ".codex/agents/agentos-zhongshu.toml",
+    ".claude/agents/agentos-zhongshu.md",
+    ".claude/skills/agentos/SKILL.md",
+    ".agents/skills/agentos/SKILL.md",
+    ".codex/agents/agentos-menxia.toml",
+    ".codex/agents/agentos-shangshu.toml",
+    ".codex/agents/agentos-executor.toml",
+    ".codex/agents/agentos-yushi.toml",
+    ".codex/hooks/aos_chain_gate.py",
+    ".claude/hooks/aos_chain_gate.py",
+    "agent-os/skills/seat-skills.json",
+    "agent-os/tools/aos_skill_receipt.py",
+    "tests/unit/test_skill_receipt.py",
+    "vendor/fusion-fable/skills/fusion/SKILL.md",
+    "vendor/AgentChat/skills/AgentChat-FreeSubAgent/SKILL.md",
     ".claude/skills/fusion-workflow/scripts/run_gemini_cli.sh",
     ".claude/skills/fusion-workflow/scripts/run_codex_sandboxed.sh",
     ".claude/skills/fusion-workflow/references/panelist-prompt-template.md",
     ".claude/skills/fusion-workflow/references/judge-prompt-template.md",
-    ".agents/skills/fusion-workflow/SKILL.md",
-    ".agents/skills/fusion-workflow/agents/openai.yaml",
-    "agent-os/workflows/agent-execution-lifecycle.md",
-    "agent-os/adapters/codex-workflow.md",
-    "vendor/claude-dynamic-workflows-codex/runner/bin/run-workflow.js",
-    "vendor/claude-dynamic-workflows-codex/runner/src/runtime.js",
-    "vendor/claude-dynamic-workflows-codex/references/authoring.md",
-    "vendor/claude-dynamic-workflows-codex/LICENSE",
-    "vendor/claude-dynamic-workflows-codex.AGENTOS.md",
-    "agent-os/memory/bootstrap.md",
-    "agent-os/memory/routing.md",
-    "agent-os/memory/wiki-v2.md",
-    "agent-os/adapters/runtime-visibility.md",
-    "agent-os/adapters/skill-parity.md",
-    "agent-os/tools/aos-lint.py",
-    "agent-os/tools/aos_active_work.py",
-    ".claude/settings.json",
-    ".codex/config.toml",
-    ".codex/hooks.json",
-    "agent-os/rules-card.md",
-    ".codex/hooks/aos_common.py",
-    ".codex/hooks/aos_session_start.py",
-    ".codex/hooks/aos_prompt_baseline.py",
-    ".codex/hooks/aos_stop_gate.py",
-    ".codex/hooks/aos_kernel_lint.py",
-    ".codex/hooks/aos_guard_enforcer.py",
-    ".claude/hooks/aos_common.py",
-    ".claude/hooks/aos_session_start.py",
-    ".claude/hooks/aos_prompt_baseline.py",
-    ".claude/hooks/aos_stop_gate.py",
-    ".claude/hooks/aos_kernel_lint.py",
-    ".claude/rules/agentos-local-rules.md",
-    ".agents/skills/dynamic-workflow/SKILL.md",
-    ".agents/skills/dynamic-workflow/agents/openai.yaml",
-    ".agents/skills/evidence-claim-review/SKILL.md",
-    ".agents/skills/evidence-claim-review/agents/openai.yaml",
-    ".agents/skills/intent-contract-review/SKILL.md",
-    ".agents/skills/intent-contract-review/agents/openai.yaml",
-    ".agents/skills/lifecycle-execution/SKILL.md",
-    ".agents/skills/lifecycle-execution/agents/openai.yaml",
-    ".agents/skills/memory-wiki-routing/SKILL.md",
-    ".agents/skills/memory-wiki-routing/agents/openai.yaml",
-    ".agents/skills/reasoning-causality-review/SKILL.md",
-    ".agents/skills/reasoning-causality-review/agents/openai.yaml",
-    ".agents/skills/route-promotion-review/SKILL.md",
-    ".agents/skills/route-promotion-review/agents/openai.yaml",
-    ".agents/skills/anti-sycophancy-review/SKILL.md",
-    ".agents/skills/anti-sycophancy-review/agents/openai.yaml",
-    ".agents/skills/minimal-code-review/SKILL.md",
-    ".agents/skills/minimal-code-review/agents/openai.yaml",
-    ".claude/skills/evidence-claim-review/SKILL.md",
-    ".claude/skills/intent-contract-review/SKILL.md",
-    ".claude/skills/lifecycle-execution/SKILL.md",
-    ".claude/skills/memory-wiki-routing/SKILL.md",
-    ".claude/skills/reasoning-causality-review/SKILL.md",
-    ".claude/skills/route-promotion-review/SKILL.md",
-    ".claude/skills/anti-sycophancy-review/SKILL.md",
-    ".claude/skills/minimal-code-review/SKILL.md",
-    "wiki/index.md",
-    "wiki/log.md",
-    "wiki/CHATS/README.md",
-    "wiki/TASKS/README.md",
-    "wiki/knowledge/agentos-wiki-v2-method.md",
-    "wiki/ledgers/README.md",
-    "wiki/raw/MANIFEST.md",
-    "outputs/reasoning-base-v1-templates-2026-07-01.md",
-    "outputs/agent-os-kernel-placement-map-v1-2026-07-01.md",
-    "work/e2e-pressure-tests/agentos-e2e-pressure-test.mjs",
-    "tests/capabilities.json",
-    "tests/unit/test_active_work.py",
-    "tests/integration/test_runtime_adapters.py",
-    "tests/scenarios/test_instruction_stack_contract.py",
-    "tests/scenarios/test_artifact_contracts.py",
 ]
+
+
+def target_lint_required_files(target: Path) -> list[str]:
+    try:
+        lint_text = (target / "agent-os/tools/aos-lint.py").read_text(encoding="utf-8")
+        begin = lint_text.index("REQUIRED_FILES = [")
+        finish = lint_text.index("]", begin)
+        return re.findall(r'"([^"]+)"', lint_text[begin:finish])
+    except Exception:
+        return []
 
 REQUIRED_DIRS = [
     "agent-os",
@@ -129,7 +70,6 @@ REQUIRED_DIRS = [
     "wiki/knowledge",
     "wiki/ledgers",
     "wiki/raw",
-    "work/e2e-pressure-tests",
     "tests/unit",
     "tests/integration",
     "tests/scenarios",
@@ -161,7 +101,9 @@ def hook_config_report(path: Path) -> dict:
             raise ValueError("root-or-hooks-shape-invalid")
         stop_commands = _hook_commands(document.get("hooks", {}).get("Stop", []))
         agentos_stop = [command for command in stop_commands if AGENTOS_HOOK_RE.search(command)]
-        valid = len(agentos_stop) == 1 and "aos_stop_gate.py" in agentos_stop[0]
+        gate = [c for c in agentos_stop if "aos_stop_gate.py" in c]
+        known_extra = [c for c in agentos_stop if "aos_chain_gate.py" in c]
+        valid = len(gate) == 1 and len(gate) + len(known_extra) == len(agentos_stop)
         return {
             "status": "wired" if valid else "agentos-stop-handler-count-invalid",
             "agentos_stop_commands": agentos_stop,
@@ -257,6 +199,20 @@ def resident_rules_report(target: Path) -> dict:
         return {"status": "projection-mismatch", "error": str(exc)}
 
 
+def role_skill_report(target: Path) -> dict:
+    try:
+        manifest = json.loads((target / "agent-os/skills/seat-skills.json").read_text(encoding="utf-8"))
+        roles = ("zhongshu", "menxia", "shangshu", "executor", "yushi")
+        configured = all(isinstance(manifest.get(role), list) and manifest[role] for role in roles)
+        receipt = (target / "agent-os/tools/aos_skill_receipt.py").read_text(encoding="utf-8")
+        hook = (target / ".codex/hooks/aos_chain_gate.py").read_text(encoding="utf-8")
+        valid = configured and "sha256" in receipt and "valid_skill_receipt" in hook
+        return {"status": "enforced" if valid else "role-skill-contract-incomplete",
+                "roles": {role: manifest.get(role, []) for role in roles}}
+    except Exception as exc:
+        return {"status": "role-skill-contract-incomplete", "error": str(exc)}
+
+
 def preservation_report(target: Path) -> dict:
     manifest_path = target / ".agentos-install-manifest.json"
     if not manifest_path.is_file():
@@ -294,7 +250,9 @@ def preservation_report(target: Path) -> dict:
 def validate(target: Path) -> dict:
     target = target.expanduser().resolve()
 
-    missing_files = [p for p in REQUIRED_FILES if not (target / p).is_file()]
+    required_files = target_lint_required_files(target) or FALLBACK_CORE_FILES
+    required_files = list(dict.fromkeys([*required_files, *EXTRA_REQUIRED_FILES]))
+    missing_files = [p for p in required_files if not (target / p).is_file()]
     missing_dirs = [p for p in REQUIRED_DIRS if not (target / p).is_dir()]
     unexpected_runs = [str(p.relative_to(target)) for p in (target / "work").glob("**/runs") if p.is_dir()]
 
@@ -304,6 +262,7 @@ def validate(target: Path) -> dict:
     task_state_tests = task_state_test_report(target)
     attention_hooks = attention_hook_report(target)
     resident_rules = resident_rules_report(target)
+    role_skills = role_skill_report(target)
     preservation = preservation_report(target)
 
     passed = (
@@ -315,6 +274,7 @@ def validate(target: Path) -> dict:
         and task_state_tests["status"] == "present"
         and attention_hooks["status"] == "wired"
         and resident_rules["status"] == "canonical"
+        and role_skills["status"] == "enforced"
         and preservation["status"] in {"safe", "manifest-not-found"}
     )
 
@@ -329,6 +289,7 @@ def validate(target: Path) -> dict:
         "task_state_tests": task_state_tests,
         "attention_hooks": attention_hooks,
         "resident_rules": resident_rules,
+        "role_skills": role_skills,
         "state_wiki_preservation": preservation,
         "warnings": {
             "unexpected_historical_runs": unexpected_runs,

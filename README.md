@@ -6,12 +6,13 @@ The design has one important boundary: AI performs semantic judgment; hooks only
 
 ## What it changes
 
-- Every real user message asks the main model to reconsider whether the request continues, corrects, replaces, or starts work.
-- Long tasks keep a small session-local `active_work` record: goal, finish conditions, open items, next action, status, and evidence.
-- Session start and context recovery restore only that long-task state. Restored state is context, not permission to continue old actions.
-- Tool hooks stay quiet during normal work. They guard the single Codex delegation backend, validate worker-prompt structure, and lint governed documents after structured edits.
-- A completed or blocked long task gets one same-model delivery reread before the answer reaches the user. Short answers are not forced through another generation.
-- The canonical resident rules live in `agent-os/rules-card.md`; Codex and Claude receive native projections of that one source.
+- Ordinary chat stays ordinary. Nothing about the chain applies until the user invokes the `agentos` skill (`$agentos` in Codex Desktop, `/agentos` in Claude Code).
+- When invoked, the current session becomes a **relay** (太监): it writes the user's exact words to a task record, opens the **中书 (Zhongshu)** seat, and carries messages back and forth verbatim. It never summarizes, thinks for a seat, or edits files.
+- The chain (三省六部) then runs as separate seats: 中书 (understanding + the one final delivery) → 门下 (independent review of the raw request first, then a compared verdict: pass / modify / return) → 尚书 (execution owner) → one-shot **executor** (the only seat that changes the workspace) → 尚书 integration → 中书 verification and delivery; a background 御史 records confirmed mistakes.
+- On Codex Desktop every seat is a visible thread titled `<seat>｜<task>`, created with the Desktop's own `codex_app` thread tools; on Claude Code seats are native subagents.
+- Order is enforced by one shared hook (`aos_chain_gate.py`) on two mechanical facts only: who is calling (runtime agent identity / hook-owned thread registry) and what the append-only task ledger says. Deny reasons always name the next legal step. Reads are never denied; unbound sessions see silent hooks.
+- Each seat must read its listed skills (`agent-os/skills/seat-skills.json`) and record a hash receipt before phase work; ledger lines can only be written as the caller's own seat; the user's bypass is recorded only by 门下 quoting the user verbatim.
+- Long tasks keep a small session-local `active_work` record; pause, stop, and resume are relay commands; delivery unbinds the session.
 
 ## Install
 
@@ -28,32 +29,38 @@ The installer merges user entry documents and runtime configuration. Existing `a
 
 After installation or an update, start a new Codex or Claude session in the project. Changed project hooks may require approval before they run.
 
+## Use
+
+Open a session in the installed project. Chat normally, or run the chain:
+
+```text
+$agentos 帮我检查这个项目当前是否存在一个明显且可复现的问题     # Codex Desktop
+/agentos 请只读确认项目根目录是否有 README.md，并告诉我首行      # Claude Code
+```
+
+Everything you say afterwards is relayed verbatim to 中书 until it records the delivery. Say "先停" / "关掉" to pause or stop, and `$agentos 继续 <task-id>` to resume; the relay lists open tasks with `python3 agent-os/tools/aos_task_record.py board`.
+
 ## Architecture
 
 ```text
-user message
-    ↓
-main model understands the goal and finish line
-    ↓
-task contract guides work and evidence
-    ↓
-hooks restore attention or run mechanical checks
-    ↓
-verified result and plain-language delivery
-    ↓
-selective project memory for future sessions
+user message ── (ordinary chat unless the user invokes `agentos`)
+    ↓ relay writes the exact words to the task ledger, opens 中书省｜<task>
+中书  reconstructs the goal; sends the RAW increment to 门下 first
+门下  Phase A independent reading → Phase B compared verdict (pass/modify/return)
+中书  records the contract; hands the approved package to 尚书 verbatim
+尚书  plans, records dispatch, creates the one-shot executor, verifies, integrates
+中书  verifies against done_when, records delivery → relay returns it verbatim
+御史  (background) records confirmed mistakes under wiki/errors/
 ```
 
 The repository installs these layers:
 
-- `agent-os/`: canonical rules, review gates, workflows, memory contract, and tools.
-- `AGENTS.md` and `.agents/skills/`: Codex and portable agent adapters.
-- `CLAUDE.md`, `.claude/rules/`, `.claude/skills/`, and `.claude/hooks/`: Claude Code adapters.
-- `.codex/config.toml` and `.codex/hooks/`: Codex project configuration and hooks.
+- `agent-os/`: rules card, review gates, seat workflows, seat-skill manifest, ledger/receipt/lint tools, memory contract.
+- `.claude/skills/agentos/` and `.agents/skills/agentos/`: the relay skill for Claude Code and Codex.
+- `.claude/agents/agentos-*.md` and `.codex/agents/agentos-*.toml`: the seat contracts (zhongshu, menxia, shangshu, executor, yushi).
+- `.claude/hooks/` and `.codex/hooks/`: attention hooks plus the shared chain gate (`aos_chain_gate.py`, byte-identical in both).
+- `AGENTS.md`, `CLAUDE.md`, `.codex/config.toml`, `.claude/settings.json`: seat-neutral entry surfaces and hook wiring.
 - `PLANS.md`, `PROGRESS.md`, `DECISIONS.md`, `HANDOFF.md`, and `wiki/`: project-owned memory.
-- `vendor/claude-dynamic-workflows-codex/`: the sole delegated workflow engine used by Codex.
-
-Codex may work directly in the main conversation or delegate through the vendored Dynamic Workflow runner. Claude keeps its native Workflow. AgentOS does not add a second orchestration backend.
 
 ## What hooks do not do
 
@@ -74,4 +81,4 @@ See [Quickstart](docs/QUICKSTART.md) for installation details and [Architecture]
 
 ## License
 
-Apache-2.0. The vendored Dynamic Workflow keeps its upstream license and attribution.
+Apache-2.0.

@@ -24,6 +24,7 @@ Generated from governed Wiki files; edit source files, not this list.
 
 ### docs
 - [docs/README.md](docs/README.md)
+- [docs/task-anatomy.md](docs/task-anatomy.md)
 
 ### errors
 - [errors/_INDEX.md](errors/_INDEX.md)

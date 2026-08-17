@@ -1,6 +1,6 @@
 ---
 name: fusion-workflow
-description: Runs AgentOS Fusion Workflow — fan one question out to a blind panel of models (free web AIs via AgentChat, or codex/gemini/claude CLIs), judge all answers, deliver one fused answer with full provenance. MANUAL ONLY — use exclusively when Master ZX explicitly invokes it (/fusion, "跑 Fusion", "融合回答", "多模型融合", or names a panel). Never auto-initiate or suggest-trigger it.
+description: Runs AgentOS Fusion Workflow — fan one question out to a blind panel of models (free web AIs via AgentChat, or codex/gemini/claude CLIs), judge all answers, deliver one fused answer with full provenance. MANUAL ONLY — use exclusively when the owner explicitly invokes it (/fusion, "跑 Fusion", "融合回答", "多模型融合", or names a panel). Never auto-initiate or suggest-trigger it.
 ---
 
 # Fusion Workflow
@@ -32,8 +32,8 @@ codex runner    : .claude/skills/fusion-workflow/scripts/run_codex_sandboxed.sh
                   (default sandbox, empty scratch cwd, web search only).
                   Vendor run_codex.sh uses --dangerously-bypass-approvals-and-sandbox
                   and is blocked by the permission classifier — use it only when
-                  Master ZX explicitly approves an unsandboxed panelist run.
-claude panelists: Agent tool, model: haiku unless Master ZX names a bigger
+                  the owner explicitly approves an unsandboxed panelist run.
+claude panelists: Agent tool, model: haiku unless the owner names a bigger
                   model in the invocation (cost gate in the kernel contract).
 judge           : a SEPARATE cold Agent-tool subagent per run — never the
                   orchestrator session (it packed the packet and has its own
@@ -49,7 +49,7 @@ free channel    : check `curl -s http://127.0.0.1:9222/json/version` first.
                   If Chrome CDP is down, report the launch command
                   (`bash vendor/AgentChat/scripts/start-chrome-debug.sh`) and
                   stop — do NOT silently fall through to the cli channel.
-language        : answer in the question's language (Chinese for Master ZX);
+language        : answer in the question's language (Chinese for the owner);
                   ignore the vendor default of answering in French.
 fusion mode on the free channel (default for execute/think tasks):
                   build the FreeSubAgent plan yourself — N nodes, IDENTICAL
@@ -87,7 +87,7 @@ prompt assembly : NEVER send a bare one-line role ("你是法官"). Assemble the
                   self-check). After assembly, scan the full prompt once for
                   contradictory directives before dispatch.
 provenance      : run vendor save_run.sh, then move the printed file into
-                  outputs/fusion-runs/ (mkdir -p first).
+                  agent-os/state/fusion-runs/ (mkdir -p first).
 ```
 
 ## Output Shape
@@ -99,7 +99,7 @@ fusion_run:
   panel:                # who actually answered
   degradation_notes:
   judge_track: A_artifact | B_research
-  provenance_path:      # outputs/fusion-runs/...
+  provenance_path:      # agent-os/state/fusion-runs/...
   fused_answer_ref:
   evidence_limits:
 ```

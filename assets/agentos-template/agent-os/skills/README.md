@@ -1,17 +1,7 @@
 # Agent OS Skills
 
-Reusable Agent OS methods can live here.
-
-This directory is not a native runtime skill directory by itself.
-
-Native wrappers, if added later, belong in:
-
-```text
-.agents/skills/
-.claude/skills/
-```
-
-Wrappers should point back to `agent-os/` files and stay thin.
-
-Codex enforcement hooks are not skills. They live in `.codex/hooks.json` and
-`.codex/hooks/` and remain runtime adapters.
+This directory holds no methods and no shells. Skills are thin invocation
+shells living in `.agents/skills/` and `.claude/skills/`, each pointing at
+exactly one kernel canon document — see "Skills Are Shells" in
+`agent-os/architecture.md`. Codex enforcement hooks are not skills; they live
+in `.codex/hooks.json` and `.codex/hooks/`.

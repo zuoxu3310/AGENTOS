@@ -1,6 +1,6 @@
 ---
 name: lifecycle-execution
-description: Runs the Agent OS non-small task lifecycle from intake through contract, route checks, verification, final response, and handoff. Use when handling resumed or multi-step work.
+description: Runs the Agent OS task lifecycle from intake through contract, route checks, verification, final response, and handoff. Use for work that spans messages, resumes, or needs route checkpoints and verified final wording.
 ---
 
 # Lifecycle Execution
@@ -12,14 +12,14 @@ Thin Codex adapter for the repo-local Agent OS kernel.
 Read:
 
 ```text
-agent-os/boot.md
-agent-os/router.md
 agent-os/workflows/agent-execution-lifecycle.md
+agent-os/review/task-contract.md
+agent-os/review/evidence-to-claim-gate.md
 ```
 
 ## Trigger
 
-Use for non-small work, resumed work, context-sensitive work, or tasks that need route checkpoints and verified final wording.
+Use for work that spans user messages, resumed work, context-sensitive work, or tasks that need route checkpoints and verified final wording.
 
 ## Output Shape
 

@@ -65,6 +65,9 @@ def main() -> int:
     data = aos.hook_input()
     if aos.disabled():
         return 0
+    root = aos.project_root(data)
+    if (root / "agent-os").is_dir() and not aos.chain_binding(root, "claude", data):
+        return 0
     tool = data.get("tool_name") or ""
     tool_input = data.get("tool_input") or {}
 
@@ -91,6 +94,8 @@ def main() -> int:
     if tool == "Bash":
         cmd = tool_input.get("command") or ""
         if cmd.strip() in {"codex exec --help", "codex exec -h"}:
+            return 0
+        if re.search(r"--help\b|(?<!\w)-h\b|--version\b", cmd):
             return 0
         if any(p.search(cmd) for p in BASH_DISPATCH_RES):
             if len(distinct_tags(cmd)) < MIN_TAGS and not FILE_PROMPT_HINTS.search(cmd):

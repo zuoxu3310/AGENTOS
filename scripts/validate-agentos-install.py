@@ -28,7 +28,6 @@ FALLBACK_CORE_FILES = [
 
 EXTRA_REQUIRED_FILES = [
     ".codex/agents/agentos-zhongshu.toml",
-    ".claude/agents/agentos-zhongshu.md",
     ".claude/skills/agentos/SKILL.md",
     ".agents/skills/agentos/SKILL.md",
     ".codex/agents/agentos-menxia.toml",

@@ -119,21 +119,47 @@
     },
     {
       "id": "C09",
-      "name": "Opt-in chain through one relay skill",
-      "user_visible_contract": "Ordinary chat is the default on both runtimes; the three-departments chain starts only when the user invokes the `agentos` skill, whose session becomes a courier (relay) that records the user's exact words, opens 中书省, and carries messages verbatim both ways; unbound sessions see silent hooks; pause/stop/resume are relay records.",
+      "name": "Opt-in chain: one skill per runtime, one kernel",
+      "user_visible_contract": "Ordinary chat is the default on both runtimes; the three-departments chain starts only when the user invokes the `agentos` skill. On Codex the invoking thread becomes a courier (relay) that records the user's exact words, opens 中书省, and carries messages verbatim both ways. On Claude the invoking session itself becomes 中书: it records the user's words verbatim, sends 门下 the raw words, 尚书 the approved package, and talks with the user directly between phases. An invocation with no task content opens nothing. Unbound sessions see silent hooks; pause/stop/resume are main-seat records that freeze the ledger for every seat.",
       "decision_sources": [
         ".agents/skills/agentos/SKILL.md",
         ".claude/skills/agentos/SKILL.md",
         "agent-os/rules-card.md",
         "agent-os/workflows/zhongshu.md",
-        ".claude/agents/agentos-zhongshu.md",
-        ".codex/agents/agentos-zhongshu.toml"
+        ".codex/agents/agentos-zhongshu.toml",
+        "DECISIONS.md"
       ],
       "deterministic_tests": [
-        "tests/scenarios/test_instruction_stack_contract.py::InstructionStackContractTests::test_chain_is_opt_in_through_one_relay_skill_on_both_runtimes"
+        "tests/scenarios/test_instruction_stack_contract.py::InstructionStackContractTests::test_chain_is_opt_in_through_one_skill_per_runtime_with_one_kernel",
+        "tests/unit/test_chain_gate.py::GateCase::test_main_create_binds_the_session_and_carries_only_the_users_words",
+        "tests/unit/test_chain_gate.py::GateCase::test_create_with_only_an_invocation_and_no_task_content_is_refused",
+        "tests/unit/test_chain_gate.py::GateCase::test_claude_main_zhongshu_spawns_menxia_with_the_users_words",
+        "tests/unit/test_chain_gate.py::GateCase::test_main_pause_and_resume_unbind_and_rebind",
+        "tests/unit/test_chain_gate.py::GateCase::test_paused_or_stopped_task_freezes_every_seat_until_resume"
       ],
-      "runtime_evidence_required": "Hook tests show an unbound session produces no injection, deny, or Stop block, and a relay create binds the session and denies --done-when, a non-verbatim goal, or a bad task id.",
-      "live_evidence_required": "A plain session in a project chats without any AgentOS output; `$agentos`/`/agentos` on a real task opens 中书省｜<readable-task-title>｜<task-id> and the user's exact words reach it unchanged; every seat repeats the same title and id; the delivery returns verbatim; the session is ordinary chat afterwards."
+      "runtime_evidence_required": "Hook tests show an unbound session produces no injection, deny, or Stop block; a main-seat create binds the session (relay on Codex, 中书 on Claude) and denies --done-when, a non-verbatim goal, a bad task id, or an invocation without task content; a multi-paragraph user_message is verbatim with its newlines; pause/stop freeze every seat's ledger writes and stop-gates until resume.",
+      "live_evidence_required": "A plain session in a project chats without any AgentOS output; `$agentos` (Codex) opens 中书省｜<readable-task-title>｜<task-id> and the user's exact words reach it unchanged; `/agentos <task>` (Claude) makes the session itself 中书, which answers the user directly, shows 门下省/尚书省/执行体 subagents with the same title and id, and delivers once; the session is ordinary chat afterwards."
+    },
+    {
+      "id": "C10",
+      "name": "Seat identity and no-lock-up guarantees",
+      "user_visible_contract": "A seat keeps its identity however the runtime spawned it (named or teamed spawns fall back to the runtime's spawn metadata; seat spawns are normalized to plain boolean subagents), no gate can lock the chain (every waiting gate names its exit, seats never sleep-poll), and the task ledger is written only through its CLI. The 2026-08-18 Cognition_AGENTOS lock-up (executor identity lost, 尚书 waiting an hour) cannot recur by the same path.",
+      "decision_sources": [
+        ".claude/hooks/aos_chain_gate.py",
+        ".claude/hooks/aos_common.py",
+        ".claude/agents/agentos-shangshu.md",
+        "agent-os/workflows/zhongshu.md",
+        "DECISIONS.md"
+      ],
+      "deterministic_tests": [
+        "tests/unit/test_chain_gate.py::GateCase::test_named_or_teamed_spawn_identity_falls_back_to_spawn_metadata",
+        "tests/unit/test_chain_gate.py::GateCase::test_seat_spawns_are_normalized_to_plain_boolean_subagents",
+        "tests/unit/test_chain_gate.py::GateCase::test_seats_do_not_sleep_poll_and_the_integration_gate_names_its_exit",
+        "tests/unit/test_chain_gate.py::GateCase::test_ledger_file_is_written_only_through_the_cli",
+        "tests/unit/test_chain_gate.py::GateCase::test_multi_paragraph_user_message_is_verbatim_with_its_newlines"
+      ],
+      "runtime_evidence_required": "Gate tests: a hook input whose agent_type is a spawn name resolves to the seat named by agent-<id>.meta.json customAgentType; a seat spawn carrying name/team_name/string run_in_background is rewritten (keys dropped, real boolean) and isolation is refused; sleep loops by 中书/门下/尚书 are denied; integration before execution_result is denied with the --status blocked exit named; direct edits or redirects into agent-os/state/tasks/ are denied.",
+      "live_evidence_required": "A real Claude task whose 尚书 spawns an executor completes with the executor's own execution_result in the ledger and 尚书's integration recorded; no seat waits more than one gate message without a named exit."
     }
   ]
 }

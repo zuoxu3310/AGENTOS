@@ -77,11 +77,13 @@ def main() -> int:
     error = "; ".join(problems) if problems else "none"
     task = binding.get("task_id") or ""
     relay = (
-        f'<agentos_relay task="{task}">THIS SESSION IS the 传旨 relay for task {task}: '
-        "append this user message verbatim (append --role relay --kind user_message), hand it "
-        "verbatim to the agentos-zhongshu agent, and bring the reply back unchanged. "
-        "Say 停/pause to record pause and leave the chain.</agentos_relay>\n"
-    ) if binding.get("seat") == aos.RELAY_SEAT else ""
+        f'<agentos_zhongshu task="{task}">THIS SESSION IS 中书省 for task {task}: '
+        "append this user message verbatim (append --role zhongshu --kind user_message, newlines "
+        "kept), then work by agent-os/workflows/zhongshu.md — 门下 sees the raw words before any "
+        "candidate of yours; a seat running in the background wakes you when it finishes, so end "
+        "the turn instead of sleeping. If the user says 停/pause or 关掉/stop: TaskStop the running "
+        "seats, then record pause/stop and leave the chain.</agentos_zhongshu>\n"
+    ) if binding.get("seat") == aos.MAIN_SEATS.get("claude") else ""
     context = (
         '<agentos_attention phase="user_message">\n'
         + relay +

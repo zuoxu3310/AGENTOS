@@ -16,9 +16,10 @@ What exists:
 - Kernel: `agent-os/` — seat methods in `agent-os/workflows/{zhongshu,menxia,
   shangshu,executor,yushi}.md`; Codex transport `agent-os/adapters/codex-workflow.md`;
   resident rules are the managed block below; route by `agent-os/router.md`.
-- Seats: relay (the invoking thread — a courier that carries the user's exact
-  words and never thinks in their place) · 中书 `中书省｜<task>` (understanding +
-  the one final delivery) · 门下 `门下省｜<task>` (independent review) · 尚书
+- Seats: relay (the invoking Codex thread — a courier that carries the user's
+  exact words and never thinks in their place; on Claude there is no courier —
+  the invoking session itself is 中书, see `CLAUDE.md`) · 中书 `中书省｜<task>`
+  (understanding + the one final delivery) · 门下 `门下省｜<task>` (independent review) · 尚书
   `尚书省｜<task>` (execution owner) · task-scoped `执行体｜<task>` (created by 尚书
   only) · 御史 `御史台｜<task>` (background error scribe). Seats are project threads
   created with `codex_app.create_thread`, continued with `send_message_to_thread`.
@@ -34,8 +35,9 @@ with the RAW increment; 门下 records `independent_review`, then Phase B
 `comparison` (pass/modify/return) → on pass 中书 records goal/done_when and
 sends 尚书 the approved package → 尚书 records `dispatch`, creates the executor,
 records `integration` → 中书 verifies and delivers ONE reply, records `delivery`
-→ relay returns the reply verbatim and the session is ordinary chat again.
-Pause/stop/resume are relay records and always writable. Every real user
+→ relay returns the reply verbatim (Claude: 中书 says it directly) and the
+session is ordinary chat again. Pause/stop/resume are main-seat records, always
+writable; pause/stop freeze the ledger for every seat until resume. Every real user
 message is re-read as continuation, correction, replacement, or new work.
 The user's explicit instruction outranks everything, including the hooks —
 but the actor never grants it to itself: only 门下 records `--kind bypass`
@@ -109,9 +111,8 @@ renames, or multiplies roles; new structure is a user-ratified kernel change, ne
     no MVP substitution, no defensive bloat, no compat layers, no residue.
 13. When stuck: find the root cause; if it will not yield, restart from a
     different perspective; repeat — "cannot be done" is not a deliverable.
-    Escalate only user-owned forks: changed goal or scope, missing
-    authority, external commitment or spend, irreversible action,
-    material production risk.
+    Escalate only user-owned forks: changed goal or scope, missing authority,
+    external commitment or spend, irreversible action, material production risk.
 14. A deadline compresses non-load-bearing work; it never skips a necessary
     dependency and never authorizes rushing. Overrunning without escalating
     a user-owned fork is a system failure, not a fact to report.
@@ -132,15 +133,16 @@ renames, or multiplies roles; new structure is a user-ratified kernel change, ne
 ## Runtime Boundaries
 
 18. The chain is opt-in: ordinary chat is the default; the AI never starts it
-    on its own judgment. When the user invokes the `agentos` skill, that session
-    becomes the relay — a courier that records the user's exact words, carries
-    them to 中书 and back, never thinks or edits in their place; hooks stay silent
-    for unbound sessions. Seats: Codex visible threads `<seat>｜task`, Claude `.claude/agents/`.
+    on its own judgment; an invocation without task content opens nothing. On
+    `agentos` the invoking session takes the runtime's main seat — Codex: a relay
+    carrying the user's exact words to the 中书 thread and back, never thinking or
+    editing in their place; Claude: 中书 itself, talking with the user and spawning
+    the seats (`.claude/agents/`). Hooks stay silent for unbound sessions.
 19. Inside the chain 中书 owns understanding and the final reply, `menxia`
     reviews independently from the RAW increment, `shangshu` owns execution
-    through one-shot executors — never standing bodies; no seat works before
-    its role-skill hash receipt exists. Only 门下 records the user's explicit
-    bypass. Native Workflow and Superpowers serve inside the chain on Claude only.
+    through one-shot executors — never standing bodies; no seat works before its
+    role-skill hash receipt exists. Only 门下 records the user's explicit bypass.
+    Native Workflow and Superpowers serve inside the chain on Claude only.
 20. Error learning never blocks delivery: fixing the user-visible problem
     is chain work, and a recurrence at or above two lands its mechanical
     guard inside that fix; recording belongs to the background censor
@@ -151,7 +153,7 @@ renames, or multiplies roles; new structure is a user-ratified kernel change, ne
     criteria — the hook checks only structure.
 22. Hooks and automation never outrank the user and never deadlock the
     system: deny only on mechanically provided runtime facts, never deny
-    read-only access, and keep terminal states always writable.
+    read-only access, keep terminal states writable, and name the exit.
 23. Documents are written as the work happens; ledgers record decisions,
     milestones, and handoff state with evidence and claim boundaries.
 

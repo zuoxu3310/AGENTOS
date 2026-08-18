@@ -236,12 +236,17 @@ class InstallerBehaviorTests(unittest.TestCase):
         old_agent = target / ".claude/agents/agentos-entry.md"
         old_agent.parent.mkdir(parents=True, exist_ok=True)
         old_agent.write_text("old forced seat\n", encoding="utf-8")
+        old_zhongshu = target / ".claude/agents/agentos-zhongshu.md"
+        old_zhongshu.write_text("old 中书 subagent (2026-08-17 relay design)\n", encoding="utf-8")
         manifest = installer.install(TEMPLATE, target, dry_run=False)
         self.assertEqual("ok", manifest["status"], manifest["failures"])
         settings = json.loads((target / ".claude/settings.json").read_text(encoding="utf-8"))
         self.assertNotIn("agent", settings)
         self.assertEqual(1, settings["userKey"])
         self.assertFalse(old_agent.exists())
+        # 2026-08-18: on Claude the invoking session is 中书; the subagent contract is retired
+        self.assertFalse(old_zhongshu.exists())
+        self.assertTrue((target / ".claude/agents/agentos-menxia.md").exists())
 
     def test_reinstall_preserves_existing_state_and_wiki_bytes(self) -> None:
         target = self.root / "reinstall"

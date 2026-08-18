@@ -36,6 +36,7 @@ ENTRY_CONTRACT_FILES = {"AGENTS.md", "CLAUDE.md"}
 # project Wiki paths never belong in this list.
 OBSOLETE_AGENTOS_PATHS = (
     ".claude/agents/agentos-entry.md",
+    ".claude/agents/agentos-zhongshu.md",
     ".codex/agentos-local-rules.md",
     ".codex/hooks/aos_referee.py",
     ".claude/hooks/aos_guard_enforcer.py",

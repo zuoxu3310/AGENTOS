@@ -154,8 +154,52 @@ class GateCase(unittest.TestCase):
         self.assertEqual(GATE.seat_of({"agent_type": "agentos-menxia", "agent_id": "x"}), "menxia")
         self.assertIsNone(GATE.seat_of({"agent_type": "general-purpose", "agent_id": "x"}))
         self.relay()
-        self.assertEqual(GATE.seat_of(self.data("PreToolUse", None), self.root, "claude"), "relay")
+        # Claude: the bound main session IS 中书 (Codex: the relay)
+        self.assertEqual(GATE.seat_of(self.data("PreToolUse", None), self.root, "claude"), "zhongshu")
         self.assertEqual(GATE.current_task(self.root, "claude", SESSION), TASK)
+        # a legacy Claude relay binding is nobody now
+        path = self.root / "agent-os/state/sessions" / f"claude-{SESSION}.json"
+        path.write_text(json.dumps({"seat": "agentos-relay", "task_id": TASK, "bound": True,
+                                    "ts": time.time()}), encoding="utf-8")
+        self.assertIsNone(GATE.seat_of(self.data("PreToolUse", None), self.root, "claude"))
+        self.relay("codex")
+        self.assertEqual(GATE.seat_of(self.data("PreToolUse", None), self.root, "codex"), "relay")
+
+    def test_named_or_teamed_spawn_identity_falls_back_to_spawn_metadata(self) -> None:
+        # Claude reports the *name* of a named/teamed spawn as agent_type; the gate reads
+        # the runtime's own agent metadata (customAgentType) before calling anyone nobody.
+        meta_dir = self.transcript.with_suffix("") / "subagents"
+        meta_dir.mkdir(parents=True)
+        (meta_dir / "agent-exec-1.meta.json").write_text(json.dumps(
+            {"agentType": "exec-pointer-truth", "customAgentType": "agentos-executor",
+             "name": "exec-pointer-truth", "taskKind": "in_process_teammate"}), encoding="utf-8")
+        data = self.data("PreToolUse", "exec-pointer-truth", agent_id="exec-1")
+        self.assertEqual(GATE.seat_of(data, self.root, "claude"), "executor")
+        stranger = self.data("PreToolUse", "some-helper", agent_id="nobody-9")
+        self.assertIsNone(GATE.seat_of(stranger, self.root, "claude"))
+        # the ledger accepts the recovered identity
+        self.ledger(("menxia", "comparison", "pass"), ("shangshu", "dispatch", "ok"))
+        cmd = f"python3 agent-os/tools/aos_task_record.py append --task {TASK} --role executor --kind execution_result --status completed --text done"
+        self.assertIsNone(self.decide(self.data("PreToolUse", "exec-pointer-truth", agent_id="exec-1",
+                                                tool_name="Bash", tool_input={"command": cmd})))
+
+    def test_seat_spawns_are_normalized_to_plain_boolean_subagents(self) -> None:
+        self.ledger(("menxia", "comparison", "pass"), ("shangshu", "dispatch", "ok"))
+        spawn = self.data("PreToolUse", "agentos-shangshu", tool_name="Agent",
+                          tool_input={"subagent_type": "agentos-executor", "prompt": "<a></a><b></b><c></c>",
+                                      "name": "exec-pointer-truth", "team_name": "t",
+                                      "run_in_background": "false", "description": "x"})
+        out = self.decide(spawn)["hookSpecificOutput"]
+        self.assertEqual("allow", out["permissionDecision"])
+        updated = out["updatedInput"]
+        self.assertNotIn("name", updated)
+        self.assertNotIn("team_name", updated)
+        self.assertIs(updated["run_in_background"], False)
+        self.assertEqual(self.title("agentos-executor"), updated["description"])
+        truthy = dict(spawn, tool_input=dict(spawn["tool_input"], run_in_background="true"))
+        self.assertIs(self.decide(truthy)["hookSpecificOutput"]["updatedInput"]["run_in_background"], True)
+        worktree = dict(spawn, tool_input=dict(spawn["tool_input"], isolation="worktree"))
+        self.assertTrue(self.denied(self.decide(worktree)))
 
     def test_codex_seat_comes_from_valid_session_mapping_and_unmapped_is_nobody(self) -> None:
         data = self.data("PreToolUse", None)
@@ -222,19 +266,23 @@ class GateCase(unittest.TestCase):
         self.assertTrue(self.denied(self.decide(self.bash("echo x > src/app.py", None), "codex")))
         self.assertIsNone(self.decide(self.data("Stop", None, stop_hook_active=False), "codex"))
 
-    def test_relay_spawns_zhongshu_on_claude_with_the_users_words(self) -> None:
+    def test_claude_main_zhongshu_spawns_menxia_with_the_users_words(self) -> None:
         self.user_said("帮我看看这个项目")
         self.ledger(goal="帮我看看这个项目")
-        self.relay("claude", TASK)
+        self.relay("claude", TASK)  # /agentos bound this main session as 中书
         good = self.data("PreToolUse", None, tool_name="Agent",
-                         tool_input={"subagent_type": "agentos-zhongshu", "prompt": "<a></a><b></b><c>帮我看看这个项目</c>"})
+                         tool_input={"subagent_type": "agentos-menxia", "prompt": "<a></a><b></b><c>帮我看看这个项目</c>"})
         decision = self.decide(good)
         self.assertTrue(self.allowed(decision))
-        self.assertEqual(self.title("agentos-zhongshu"), decision["hookSpecificOutput"]["updatedInput"]["description"])
-        bad = dict(good, tool_input={"subagent_type": "agentos-zhongshu", "prompt": "<a></a><b></b><c>检查项目</c>"})
+        self.assertEqual(self.title("agentos-menxia"), decision["hookSpecificOutput"]["updatedInput"]["description"])
+        bad = dict(good, tool_input={"subagent_type": "agentos-menxia", "prompt": "<a></a><b></b><c>检查项目</c>"})
         self.assertTrue(self.denied(self.decide(bad)))
-        self.assertTrue(self.denied(self.decide(self.spawn("agentos-menxia", None))))
+        # 中书 is the session: no 中书 subagent on Claude, ever
+        self.assertTrue(self.denied(self.decide(self.spawn("agentos-zhongshu", None))))
         self.assertTrue(self.denied(self.decide(self.spawn("agentos-zhongshu", "agentos-shangshu"))))
+        # an unbound main session is ordinary chat: the gate says nothing at all
+        GATE.unbind_relay(self.root, "claude", SESSION)
+        self.assertIsNone(self.decide(good))
 
     def test_completed_delivery_post_hook_unbinds_relay_on_both_runtimes(self) -> None:
         for runtime in ("claude", "codex"):
@@ -262,56 +310,135 @@ class GateCase(unittest.TestCase):
         self.assertIsNone(self.decide(self.bash(cmd, "agentos-menxia")))
         self.assertEqual(GATE.current_task(self.root, "claude", SESSION), TASK)
 
-    def test_relay_create_binds_the_session_and_carries_only_the_users_words(self) -> None:
-        self.user_said("帮我看看这个项目")
-        task = "t20260817-0930-health"
-        self.assertTrue(self.denied(self.decide(self.bash(self.relay_create(task), "agentos-shangshu"))))
-        self.assertTrue(self.denied(self.decide(self.bash(self.relay_create(task), "agentos-zhongshu"))))
-        bad_id = self.decide(self.bash(self.relay_create("agentos-runtime-audit"), None))
-        self.assertTrue(self.denied(bad_id))
-        self.assertIn("t20260817", bad_id["hookSpecificOutput"]["permissionDecisionReason"])
-        with_contract = self.bash(self.relay_create(task, extra=" --done-when 'a;;b'"), None)
-        self.assertTrue(self.denied(self.decide(with_contract)))
-        reworded = self.bash(self.relay_create(task, goal="检查项目健康"), None)
-        self.assertTrue(self.denied(self.decide(reworded)))
-        self.assertIsNone(GATE.seat_of(self.data("PreToolUse", None), self.root, "claude"))
-        self.assertIsNone(self.decide(self.bash(self.relay_create(task), None)))
-        self.assertEqual("relay", GATE.seat_of(self.data("PreToolUse", None), self.root, "claude"))
-        self.assertEqual(task, GATE.current_task(self.root, "claude", SESSION))
-        # relay ledger lines: only its four kinds, user_message verbatim
-        base = f"python3 agent-os/tools/aos_task_record.py append --task {task} --role relay"
-        self.assertIsNone(self.decide(self.bash(base + " --kind user_message --status ok --text '帮我看看这个项目'", None)))
-        self.assertTrue(self.denied(self.decide(self.bash(base + " --kind user_message --status ok --text '检查项目'", None))))
-        self.assertTrue(self.denied(self.decide(self.bash(base + " --kind delivery --status ok --text x", None))))
-        forged = f"python3 agent-os/tools/aos_task_record.py append --task {task} --role zhongshu --kind delivery --status completed --text x"
-        self.assertTrue(self.denied(self.decide(self.bash(forged, None))))
-        # a subagent can never start or resume the chain
-        self.assertTrue(self.denied(self.decide(self.bash(self.relay_create("t20260817-0931"), "general-purpose"))))
+    def test_main_create_binds_the_session_and_carries_only_the_users_words(self) -> None:
+        for runtime, role in (("claude", "zhongshu"), ("codex", "relay")):
+            with self.subTest(runtime=runtime):
+                self.setUp()
+                self.user_said("帮我看看这个项目")
+                task = "t20260817-0930-health"
+                self.assertTrue(self.denied(self.decide(self.bash(self.relay_create(task), "agentos-shangshu"), runtime)))
+                self.assertTrue(self.denied(self.decide(self.bash(self.relay_create(task), "agentos-menxia"), runtime)))
+                bad_id = self.decide(self.bash(self.relay_create("agentos-runtime-audit"), None), runtime)
+                self.assertTrue(self.denied(bad_id))
+                self.assertIn("t20260817", bad_id["hookSpecificOutput"]["permissionDecisionReason"])
+                with_contract = self.bash(self.relay_create(task, extra=" --done-when 'a;;b'"), None)
+                self.assertTrue(self.denied(self.decide(with_contract, runtime)))
+                reworded = self.bash(self.relay_create(task, goal="检查项目健康"), None)
+                self.assertTrue(self.denied(self.decide(reworded, runtime)))
+                self.assertIsNone(GATE.seat_of(self.data("PreToolUse", None), self.root, runtime))
+                self.assertIsNone(self.decide(self.bash(self.relay_create(task), None), runtime))
+                self.assertEqual(role, GATE.seat_of(self.data("PreToolUse", None), self.root, runtime))
+                self.assertEqual(task, GATE.current_task(self.root, runtime, SESSION))
+                base = f"python3 agent-os/tools/aos_task_record.py append --task {task} --role {role}"
+                self.assertIsNone(self.decide(self.bash(base + " --kind user_message --status ok --text '帮我看看这个项目'", None), runtime))
+                self.assertTrue(self.denied(self.decide(self.bash(base + " --kind user_message --status ok --text '检查项目'", None), runtime)))
+                # a subagent can never start or resume the chain
+                self.assertTrue(self.denied(self.decide(self.bash(self.relay_create("t20260817-0931"), "general-purpose"), runtime)))
+                if runtime == "codex":
+                    # the relay writes nothing but its four kinds and never forges 中书
+                    self.assertTrue(self.denied(self.decide(self.bash(base + " --kind delivery --status ok --text x", None), runtime)))
+                    forged = f"python3 agent-os/tools/aos_task_record.py append --task {task} --role zhongshu --kind delivery --status completed --text x"
+                    self.assertTrue(self.denied(self.decide(self.bash(forged, None), runtime)))
+                else:
+                    # Claude: --role relay is not a seat here; 中书 records need the receipt like any seat
+                    legacy = f"python3 agent-os/tools/aos_task_record.py append --task {task} --role relay --kind user_message --status ok --text '帮我看看这个项目'"
+                    self.assertTrue(self.denied(self.decide(self.bash(legacy, None), runtime)))
+                    self.assertTrue(self.denied(self.decide(self.bash(base + " --kind delivery --status completed --text x", None), runtime)))
 
-    def test_relay_pause_and_resume_unbind_and_rebind(self) -> None:
-        self.user_said("帮我看看这个项目")
-        task = "t20260817-0930"
-        self.assertIsNone(self.decide(self.bash(self.relay_create(task), None)))
-        (self.root / "agent-os/state/tasks" / f"{task}.jsonl").write_text(
-            json.dumps({"kind": "header", "task_id": task}) + "\n", encoding="utf-8")
-        base = f"python3 agent-os/tools/aos_task_record.py append --task {task} --role relay"
-        self.assertIsNone(self.decide(self.bash(base + " --kind pause --status ok --text 用户喊停", None)))
-        self.assertIsNone(GATE.seat_of(self.data("PreToolUse", None), self.root, "claude"))
-        # unbound again: the session is plain chat
-        self.assertIsNone(self.decide(self.edit("src/app.py", None)))
-        self.assertTrue(self.denied(self.decide(self.bash(base + " --kind user_message --status ok --text '帮我看看这个项目'", None))))
-        missing = self.decide(self.bash(base.replace(task, "t20260817-0000") + " --kind resume --status ok --text 继续", None))
-        self.assertTrue(self.denied(missing))
-        self.assertIsNone(self.decide(self.bash(base + " --kind resume --status ok --text 继续", None)))
-        self.assertEqual("relay", GATE.seat_of(self.data("PreToolUse", None), self.root, "claude"))
-        # delivery ends the binding; a later resume brings it back
-        with (self.root / "agent-os/state/tasks" / f"{task}.jsonl").open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps({"role": "zhongshu", "kind": "delivery", "status": "completed",
-                                 "ts": datetime.fromtimestamp(time.time(), timezone.utc).isoformat()}) + "\n")
-        self.assertIsNone(GATE.seat_of(self.data("PreToolUse", None), self.root, "claude"))
-        time.sleep(0.02)
-        self.assertIsNone(self.decide(self.bash(base + " --kind resume --status ok --text 继续", None)))
-        self.assertEqual("relay", GATE.seat_of(self.data("PreToolUse", None), self.root, "claude"))
+    def test_create_with_only_an_invocation_and_no_task_content_is_refused(self) -> None:
+        for phrase in ("调用agentos skill", "/agentos", "$agentos", "启动三省六部", "/agentos 走链"):
+            with self.subTest(phrase=phrase):
+                self.setUp()
+                self.user_said(phrase)
+                decision = self.decide(self.bash(self.relay_create("t20260818-0203", goal=phrase), None))
+                self.assertTrue(self.denied(decision))
+                self.assertIn("没有任务内容", decision["hookSpecificOutput"]["permissionDecisionReason"])
+                self.assertIsNone(GATE.seat_of(self.data("PreToolUse", None), self.root, "claude"))
+        self.setUp()
+        self.user_said("/agentos 看看 cognition-wiki 该怎么做")
+        self.assertIsNone(self.decide(self.bash(self.relay_create("t20260818-0204", goal="/agentos 看看 cognition-wiki 该怎么做"), None)))
+
+    def test_multi_paragraph_user_message_is_verbatim_with_its_newlines(self) -> None:
+        text = "什么意思？是重装后出现的吗？\n\n但这都不是主要任务。主要任务是先看看这个项目。"
+        self.user_said(text)
+        self.ledger()
+        self.relay("claude", TASK)
+        cmd = (f'python3 agent-os/tools/aos_task_record.py append --task {TASK} --role zhongshu '
+               f'--kind user_message --status ok --text "{text}" && echo done\npython3 other.py --role nobody')
+        calls = GATE.ledger_calls(cmd)
+        self.assertEqual(1, len(calls))
+        self.assertEqual(text, calls[0]["text"])
+        self.assertIsNone(self.decide(self.bash(cmd, None)))
+        reworded = cmd.replace("主要任务", "首要任务")
+        self.assertTrue(self.denied(self.decide(self.bash(reworded, None))))
+        both = "python3 agent-os/tools/aos_task_record.py create --task t20260818-0300 --goal 'x'; python3 agent-os/tools/aos_task_record.py title --task t20260818-0300"
+        self.assertEqual(["create", "title"], [c["sub"] for c in GATE.ledger_calls(both)])
+
+    def test_main_pause_and_resume_unbind_and_rebind(self) -> None:
+        for runtime, role in (("claude", "zhongshu"), ("codex", "relay")):
+            with self.subTest(runtime=runtime):
+                self.setUp()
+                self.user_said("帮我看看这个项目")
+                task = "t20260817-0930"
+                self.assertIsNone(self.decide(self.bash(self.relay_create(task), None), runtime))
+                (self.root / "agent-os/state/tasks" / f"{task}.jsonl").write_text(
+                    json.dumps({"kind": "header", "task_id": task}) + "\n", encoding="utf-8")
+                base = f"python3 agent-os/tools/aos_task_record.py append --task {task} --role {role}"
+                self.assertIsNone(self.decide(self.bash(base + " --kind pause --status ok --text 用户喊停", None), runtime))
+                self.assertIsNone(GATE.seat_of(self.data("PreToolUse", None), self.root, runtime))
+                # unbound again: the session is plain chat
+                self.assertIsNone(self.decide(self.edit("src/app.py", None), runtime))
+                self.assertTrue(self.denied(self.decide(self.bash(base + " --kind user_message --status ok --text '帮我看看这个项目'", None), runtime)))
+                missing = self.decide(self.bash(base.replace(task, "t20260817-0000") + " --kind resume --status ok --text 继续", None), runtime)
+                self.assertTrue(self.denied(missing))
+                self.assertIsNone(self.decide(self.bash(base + " --kind resume --status ok --text 继续", None), runtime))
+                self.assertEqual(role, GATE.seat_of(self.data("PreToolUse", None), self.root, runtime))
+                # delivery ends the binding; a later resume brings it back
+                with (self.root / "agent-os/state/tasks" / f"{task}.jsonl").open("a", encoding="utf-8") as fh:
+                    fh.write(json.dumps({"role": "zhongshu", "kind": "delivery", "status": "completed",
+                                         "ts": datetime.fromtimestamp(time.time(), timezone.utc).isoformat()}) + "\n")
+                self.assertIsNone(GATE.seat_of(self.data("PreToolUse", None), self.root, runtime))
+                time.sleep(0.02)
+                self.assertIsNone(self.decide(self.bash(base + " --kind resume --status ok --text 继续", None), runtime))
+                self.assertEqual(role, GATE.seat_of(self.data("PreToolUse", None), self.root, runtime))
+
+    def test_paused_or_stopped_task_freezes_every_seat_until_resume(self) -> None:
+        self.ledger(("menxia", "comparison", "pass"), ("shangshu", "dispatch", "ok"),
+                    ("zhongshu", "stop", "ok"))
+        result = f"python3 agent-os/tools/aos_task_record.py append --task {TASK} --role executor --kind execution_result --status completed --text done"
+        decision = self.decide(self.bash(result, "agentos-executor"))
+        self.assertTrue(self.denied(decision))
+        self.assertIn("暂停/停止", decision["hookSpecificOutput"]["permissionDecisionReason"])
+        # an orphaned seat is not held hostage at its stop either
+        stop = self.data("SubagentStop", "agentos-executor")
+        self.assertIsNone(self.decide(stop))
+        self.assertIsNone(self.decide(self.data("SubagentStop", "agentos-shangshu")))
+        # resume by the main seat thaws it
+        self.ledger(("menxia", "comparison", "pass"), ("shangshu", "dispatch", "ok"),
+                    ("zhongshu", "stop", "ok"), ("zhongshu", "resume", "ok"))
+        self.assertIsNone(self.decide(self.bash(result, "agentos-executor")))
+
+    def test_ledger_file_is_written_only_through_the_cli(self) -> None:
+        self.ledger(("menxia", "comparison", "pass"), ("shangshu", "dispatch", "ok"))
+        self.assertTrue(self.denied(self.decide(self.edit(f"agent-os/state/tasks/{TASK}.jsonl", "agentos-executor"))))
+        self.assertTrue(self.denied(self.decide(self.edit(f"agent-os/state/tasks/{TASK}.jsonl", "agentos-zhongshu"))))
+        redirect = f"echo '{{}}' >> agent-os/state/tasks/{TASK}.jsonl"
+        self.assertTrue(self.denied(self.decide(self.bash(redirect, "agentos-executor"))))
+        self.assertIsNone(self.decide(self.bash(f"cat agent-os/state/tasks/{TASK}.jsonl", "agentos-executor")))
+        self.assertIsNone(self.decide(self.edit("agent-os/state/active-work/x.json", "agentos-zhongshu")))
+
+    def test_seats_do_not_sleep_poll_and_the_integration_gate_names_its_exit(self) -> None:
+        self.ledger(("menxia", "comparison", "pass"), ("shangshu", "dispatch", "ok"))
+        loop = "for i in $(seq 1 120); do grep -q x f || sleep 5; done"
+        for seat in ("agentos-zhongshu", "agentos-shangshu", "agentos-menxia"):
+            self.assertTrue(self.denied(self.decide(self.bash(loop, seat))))
+        self.assertIsNone(self.decide(self.bash(loop, "agentos-executor")))
+        integration = f"python3 agent-os/tools/aos_task_record.py append --task {TASK} --role shangshu --kind integration --status done --text ok"
+        decision = self.decide(self.bash(integration, "agentos-shangshu"))
+        self.assertTrue(self.denied(decision))
+        self.assertIn("--status blocked", decision["hookSpecificOutput"]["permissionDecisionReason"])
+        blocked = integration.replace("--status done", "--status blocked")
+        self.assertIsNone(self.decide(self.bash(blocked, "agentos-shangshu")))
 
     def test_phase_work_requires_hashed_role_skill_receipt(self) -> None:
         self.ledger(runtime="codex", skills=False)
@@ -388,6 +515,7 @@ class GateCase(unittest.TestCase):
 
     def test_menxia_and_yushi_are_spawned_by_zhongshu_only(self) -> None:
         self.ledger()
+        self.user_said("<a></a><b></b><c></c>")
         self.assertTrue(self.allowed(self.decide(self.spawn("agentos-menxia", "agentos-zhongshu"))))
         self.assertTrue(self.denied(self.decide(self.spawn("agentos-menxia", "agentos-shangshu"))))
         self.assertTrue(self.allowed(self.decide(self.spawn("agentos-yushi", "agentos-zhongshu"))))
@@ -614,13 +742,14 @@ class GateCase(unittest.TestCase):
 
     def test_seat_spawns_show_role_readable_task_and_id(self) -> None:
         self.ledger(("menxia", "comparison", "pass"), ("shangshu", "dispatch", "ok"))
+        self.user_said("please review the file")
         codex = self.data("PreToolUse", "agentos-zhongshu", tool_name="collaborationspawn_agent",
-                          tool_input={"agent_type": "agentos-menxia", "message": "m", "task_name": "review the file"})
+                          tool_input={"agent_type": "agentos-menxia", "message": "please review the file", "task_name": "review the file"})
         out = self.decide(codex)["hookSpecificOutput"]
         self.assertEqual("allow", out["permissionDecision"])
         # Codex agent names allow only [a-z0-9_]: role + task, ascii-safe
         self.assertEqual("menxia_demo_task", out["updatedInput"]["task_name"])
-        already = dict(codex, tool_input={"agent_type": "agentos-menxia", "message": "m", "task_name": "menxia_demo_task"})
+        already = dict(codex, tool_input={"agent_type": "agentos-menxia", "message": "please review the file", "task_name": "menxia_demo_task"})
         self.assertIsNone(self.decide(already))
         claude = self.data("PreToolUse", "agentos-shangshu", tool_name="Agent",
                            tool_input={"subagent_type": "agentos-executor", "prompt": "<a></a><b></b><c></c>",

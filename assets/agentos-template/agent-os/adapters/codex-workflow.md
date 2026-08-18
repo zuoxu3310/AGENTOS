@@ -84,7 +84,7 @@ zhongshu Stop             : blocked once until this turn left a zhongshu record
 ```
 
 Reads and terminal records remain writable; unknown hook input fails open.
-Claude Agent/Task spawning and retitling are not changed by this adapter.
+Claude Agent/Task spawning and retitling are not changed by this adapter; on Claude the invoking session is 中书 itself (no relay), the shared gate normalizes seat spawns (no name/team, boolean run_in_background) and reads spawn metadata when a runtime reports a spawn name as agent_type.
 
 ## Prompt, Ownership, And Authority
 

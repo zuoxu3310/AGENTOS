@@ -2,10 +2,12 @@
 """Chain gate: enforce the three-departments ORDER on mechanically provided facts.
 
 Two facts only, never semantics:
-  * who is calling  — the runtime's hook input `agent_type` (Claude seats) or the
-    session mapping this gate wrote (Codex seat threads, and the relay: a main
-    session bound to a task by the `agentos` skill). An unbound main session is
-    NOT on the chain: every hook is a silent no-op for it.
+  * who is calling  — the runtime's hook input `agent_type` (Claude seat
+    subagents; falls back to the runtime's spawn metadata when a named/teamed
+    spawn reports its name instead) or the session mapping this gate wrote
+    (Codex seat threads, and the MAIN seat: a main session bound to a task by
+    the `agentos` skill — on Codex the relay 太监, on Claude 中书 itself). An
+    unbound main session is NOT on the chain: every hook is a silent no-op.
   * where the task is — the task ledger under agent-os/state/tasks/, whose role
     field this same gate makes trustworthy (a seat may only append as itself).
 
@@ -17,18 +19,27 @@ terminal records are always writable; unknown → fail-open):
   project writes   : executor (or any dispatched worker) after a dispatch;
                      御史 only under wiki/; 中书 only under a user bypass;
                      agent-os/state/ always
-  ledger           : `create` by the relay (task id tNNNNNNNN-NNNN…, goal = the
-                     user's verbatim words, no done_when) — that binds the session;
-                     `append --role X` only when X is the caller; relay appends only
-                     user_message (verbatim quote) / pause / resume / stop;
+  ledger           : `create` by the main seat (task id tNNNNNNNN-NNNN…, goal =
+                     the user's verbatim words with real content after the
+                     invocation token, no done_when) — that binds the session;
+                     `append --role X` only when X is the caller; the main seat's
+                     control kinds are user_message (verbatim quote) / pause /
+                     resume / stop (Codex relay writes nothing else); pause/stop
+                     unbind and freeze the task for every seat until resume;
                      `--kind bypass` only with a verbatim quote from a real user
-                     message of this session
-  relay            : creates/talks to the `中书省｜<task-title>｜<task-id>` thread (Codex) or the
-                     agentos-zhongshu agent (Claude) only, always carrying a real
-                     user message verbatim; never writes; its Stop is never blocked
+                     message of this session; the ledger file itself is written
+                     only through aos_task_record.py
+  relay (Codex)    : creates/talks to the `中书省｜<task-title>｜<task-id>` thread only,
+                     always carrying a real user message verbatim; never writes;
+                     its Stop is never blocked
+  中书 (Claude)    : is the bound main session; spawns 门下 with a real user message
+                     verbatim, 尚书 after pass; seat spawns are normalized (no
+                     name/team, boolean run_in_background, no worktree); no sleep
+                     polling
   Stop (中书)      : blocked once when no zhongshu record is newer than the latest
-                     relay user_message of the task; delivery ends the task
-  SubagentStop     : a seat may not end before its own record exists (once)
+                     user_message of the task; delivery ends the task
+  SubagentStop     : a seat may not end before its own record exists (once);
+                     never while the task is paused/stopped
 Same file in .claude/hooks and .codex/hooks; runtime differences are data.
 """
 from __future__ import annotations
@@ -72,9 +83,16 @@ MUTATION = re.compile(
 REDIRECT = re.compile(r"(?<!\d)>{1,2}\s*(?!&|/dev/)\S")
 STATE_PREFIX = "agent-os/state/"
 RELAY_SEAT = "agentos-relay"
+MAIN_SEATS = aos.MAIN_SEATS      # runtime -> seat type of a bound main session
+MAIN_ROLES = aos.MAIN_ROLES      # runtime -> ledger role of that main session
 RELAY_TASK_RE = re.compile(r"^t\d{8}-\d{4}[a-z0-9-]*$")
 TITLE_LIMIT = 32
 RELAY_KINDS = {"user_message", "pause", "resume", "stop"}
+CONTROL_KINDS = {"pause", "resume", "stop"}
+INVOCATION_TOKENS = re.compile(r"(?:[$/]?agentos|三省六部|走链|skill|技能|调用|启动|开启|运行|跑)", re.I)
+SPAWN_STRIP_KEYS = ("name", "team_name", "teamName")
+SLEEP_POLL = re.compile(r"(?:^|[\s;&|(])sleep\s+\d")
+LEDGER_FILE_RE = re.compile(r"agent-os/state/tasks/")
 TERMINAL_FAILURE_KINDS = {
     "zhongshu": "delivery",
     "shangshu": "integration",
@@ -89,13 +107,14 @@ EVIDENCE_KINDS = {
 
 # ---------------------------------------------------------------- identity --
 def seat_of(data: dict, root: Path | None = None, runtime: str | None = None) -> str | None:
-    """Caller identity. Claude seats: hook `agent_type`. Codex seat threads and the
-    relay (either runtime): the session mapping written by this gate. Anything
-    else — an unbound main session, a legacy `agentos-entry` main, a non-seat
-    subagent — is None."""
-    agent_type = str(data.get("agent_type") or "")
-    if agent_type:
-        seat = SEATS.get(agent_type)
+    """Caller identity. Claude seat subagents: hook `agent_type`, or the spawn
+    metadata when a named/teamed spawn reports its name. Codex seat threads and
+    the main seat (Codex relay, Claude 中书): the session mapping written by this
+    gate. Anything else — an unbound main session, a legacy `agentos-entry` or
+    Claude relay main, a non-seat subagent — is None."""
+    if data.get("agent_id") or data.get("agent_type"):
+        seat_type = aos.seat_agent_type(data) if data.get("agent_id") else str(data.get("agent_type") or "")
+        seat = SEATS.get(seat_type or "")
         if seat or data.get("agent_id"):
             return seat
     if root is None or runtime is None:
@@ -105,8 +124,8 @@ def seat_of(data: dict, root: Path | None = None, runtime: str | None = None) ->
         return None
     seat_type = str(mapping.get("seat") or "")
     if seat_type == RELAY_SEAT:
-        return "relay"
-    if runtime == "codex" and seat_type in SEAT_TITLES:
+        return "relay" if runtime == "codex" else None
+    if seat_type in SEAT_TITLES and (runtime == "codex" or seat_type == MAIN_SEATS.get(runtime)):
         return SEATS[seat_type]
     return None
 
@@ -116,11 +135,15 @@ def is_unbound_main(data: dict, root: Path, runtime: str) -> bool:
     return seat_of(data, root, runtime) is None and not data.get("agent_id")
 
 
-def bind_relay(root: Path, runtime: str, session: str, task_id: str) -> None:
+def bind_main(root: Path, runtime: str, session: str, task_id: str) -> None:
+    """Bind a main session as the runtime's main seat (Codex relay / Claude 中书)."""
     path = sessions_dir(root) / f"{runtime}-{aos_safe(session)}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"seat": RELAY_SEAT, "task_id": task_id, "bound": True,
+    path.write_text(json.dumps({"seat": MAIN_SEATS[runtime], "task_id": task_id, "bound": True,
                                 "ts": time.time()}, ensure_ascii=False), encoding="utf-8")
+
+
+bind_relay = bind_main  # historical name
 
 
 def unbind_relay(root: Path, runtime: str, session: str) -> None:
@@ -128,14 +151,14 @@ def unbind_relay(root: Path, runtime: str, session: str) -> None:
 
 
 def unbind_relays_for_task(root: Path, runtime: str, task_id: str) -> None:
-    """Unbind every relay carrying a delivered task, regardless of seat session."""
+    """Unbind every main session carrying a delivered task, regardless of seat session."""
     for path in sessions_dir(root).glob(f"{runtime}-*.json"):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except Exception:
             continue
-        if (data.get("seat") == RELAY_SEAT and data.get("task_id") == task_id
-                and data.get("bound") is not False):
+        if (data.get("seat") in MAIN_SEATS.values() and "bound" in data
+                and data.get("task_id") == task_id and data.get("bound") is not False):
             data["bound"] = False
             data["ts"] = time.time()
             path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
@@ -456,6 +479,14 @@ def retitle(tool: str, tool_input: dict, target: str, root: Path, task_id: str |
         return None
     if tool in ("Agent", "Task"):
         key, title = "description", seat_thread_title(root, target, task_id)
+        updated = normalize_spawn(tool_input)
+        if updated is not None or str(tool_input.get(key) or "").strip() != title:
+            updated = dict(updated if updated is not None else tool_input)
+            updated[key] = title
+            return {"hookSpecificOutput": {"hookEventName": "PreToolUse",
+                                           "permissionDecision": "allow",
+                                           "updatedInput": updated}}
+        return None
     else:
         # Codex derives the child's agent_name from task_name and accepts only
         # lowercase letters, digits and underscores (verified 2026-08-16).
@@ -469,6 +500,23 @@ def retitle(tool: str, tool_input: dict, target: str, root: Path, task_id: str |
     return {"hookSpecificOutput": {"hookEventName": "PreToolUse",
                                    "permissionDecision": "allow",
                                    "updatedInput": updated}}
+
+
+def normalize_spawn(tool_input: dict) -> dict | None:
+    """Seat spawns stay plain subagents: no name/team (a named or teamed spawn
+    reports its NAME as hook agent_type and loses seat identity — the 2026-08-18
+    executor lock-up), and run_in_background is a real boolean (the string
+    "false" is truthy). Returns the corrected input, or None when nothing changed."""
+    updated = dict(tool_input)
+    changed = False
+    for key in SPAWN_STRIP_KEYS:
+        if key in updated:
+            updated.pop(key)
+            changed = True
+    if "run_in_background" in updated and not isinstance(updated["run_in_background"], bool):
+        updated["run_in_background"] = aos_truthy(updated["run_in_background"])
+        changed = True
+    return updated if changed else None
 
 
 def block(reason: str) -> dict:
@@ -509,77 +557,140 @@ def write_targets(root: Path, tool_input: dict) -> list[str]:
     return [p for p in (relative_path(root, v) for v in values) if p is not None]
 
 
+_CLI_BOUNDARY = {";", ";;", "&&", "||", "|", "&", "\n"}
+
+
+def cli_argv(command: str, marker: str) -> list[list[str]]:
+    """argv of every `<marker> ...` invocation in a shell command. Quoted
+    newlines stay inside their token (a multi-paragraph --text is one value);
+    an unquoted `;`, `&&`, `||`, `|`, `&` or newline ends the invocation."""
+    out: list[list[str]] = []
+    start = 0
+    while True:
+        index = command.find(marker, start)
+        if index < 0:
+            return out
+        rest = command[index + len(marker):]
+        lexer = shlex.shlex(rest, posix=True, punctuation_chars=";&|\n")
+        lexer.whitespace = " \t\r"
+        lexer.whitespace_split = True
+        argv: list[str] = []
+        try:
+            for token in lexer:
+                if token in _CLI_BOUNDARY or token.strip("\n") == "":
+                    break
+                argv.append(token)
+        except ValueError:
+            argv = rest.split("\n", 1)[0].split()
+        out.append(argv)
+        start = index + len(marker)
+
+
+def _flags(argv: list[str]) -> dict:
+    call: dict = {}
+    for index, token in enumerate(argv):
+        if token.startswith("--") and index + 1 < len(argv):
+            call[token[2:]] = argv[index + 1]
+    return call
+
+
 def ledger_calls(command: str) -> list[dict]:
     calls: list[dict] = []
-    for match in LEDGER_RE.finditer(command):
-        try:
-            argv = shlex.split(match.group(1))
-        except ValueError:
-            argv = match.group(1).split()
-        call: dict = {"sub": argv[0] if argv else ""}
-        for index, token in enumerate(argv):
-            if token.startswith("--") and index + 1 < len(argv):
-                call[token[2:]] = argv[index + 1]
+    for argv in cli_argv(command, "aos_task_record.py"):
+        call = _flags(argv)
+        call["sub"] = argv[0] if argv else ""
         calls.append(call)
     return calls
 
 
 def skill_receipt_calls(command: str) -> list[dict]:
-    calls: list[dict] = []
-    for match in SKILL_RECEIPT_RE.finditer(command):
-        try:
-            argv = shlex.split(match.group(1))
-        except ValueError:
-            argv = match.group(1).split()
-        call: dict = {}
-        for index, token in enumerate(argv):
-            if token.startswith("--") and index + 1 < len(argv):
-                call[token[2:]] = argv[index + 1]
-        calls.append(call)
-    return calls
+    return [_flags(argv) for argv in cli_argv(command, "aos_skill_receipt.py")]
+
+
+def task_control(events: list[dict]) -> str | None:
+    """Latest main-seat control kind of a task: 'pause' / 'stop' / 'resume' / None."""
+    latest = None
+    for event in events:
+        if event.get("kind") in CONTROL_KINDS and event.get("role") in MAIN_ROLES.values():
+            latest = str(event.get("kind"))
+    return latest
+
+
+def task_frozen(events: list[dict]) -> bool:
+    return task_control(events) in ("pause", "stop")
+
+
+def goal_payload(goal: str) -> str:
+    """What is left of a create --goal after the invocation vocabulary; the chain
+    needs real task content, an invocation alone opens nothing."""
+    text = INVOCATION_TOKENS.sub("", goal or "")
+    return re.sub(r"[\s，。,.:：;；!！?？、\-—_·]+", "", text)
 
 
 # ------------------------------------------------------------------- gates --
-def relay_ledger_gate(call: dict, seat: str | None, data: dict, root: Path,
-                      runtime: str, session: str) -> dict | None:
-    """Ledger commands a main session may run as the relay. `create` and `resume`
-    are the chain's start/restart: they bind an unbound session; pause/stop unbind."""
+def main_ledger_gate(call: dict, seat: str | None, data: dict, root: Path,
+                     runtime: str, session: str) -> dict | None:
+    """Ledger commands that belong to the main seat of this runtime (Codex relay,
+    Claude 中书): `create` and `resume` are the chain's start/restart and bind an
+    unbound session; pause/stop unbind and freeze the task; user_message must be
+    the user's verbatim words. The Codex relay may write nothing else."""
     sub = call.get("sub")
-    if seat is None and data.get("agent_id") and (sub == "create" or call.get("role") == "relay"):
-        return deny("子代理不能启动或续接链：任务由用户会话（传旨）创建和恢复。")
+    main_role = MAIN_ROLES[runtime]
+    role = call.get("role")
+    if data.get("agent_id") and (sub == "create" or (role == main_role and call.get("kind") in CONTROL_KINDS)):
+        return deny("子代理不能启动、暂停、停止或续接链：任务由用户会话（本运行时的主席位）控制。")
     if sub == "create":
-        if seat not in (None, "relay"):
-            return deny("任务记录由传旨会话（relay）创建；席位线程不建任务。")
+        if seat not in (None, main_role):
+            return deny(f"任务记录由主席位（{main_role}）创建；其他席位不建任务。")
         task = str(call.get("task") or "")
         if not RELAY_TASK_RE.match(task):
             return deny("任务号格式：t + 8 位日期 + '-' + 4 位时间（如 t20260817-0930，可带 -后缀，"
-                        "只用小写字母数字连字符）；传旨会话机械起号，不带框架。")
+                        "只用小写字母数字连字符）；主会话机械起号，不带框架。")
         if "done-when" in call:
-            return deny("create 不写 --done-when：目标与完成条件在门下 pass 之后由中书契约固定，传旨会话不预设。")
-        if not quoted_by_user(str(call.get("goal") or ""), data.get("transcript_path")):
-            return deny("create 的 --goal 必须是用户在本会话说过的原话（一字不差），传旨会话不改写用户的话。")
-        bind_relay(root, runtime, session, task)
+            return deny("create 不写 --done-when：目标与完成条件在门下 pass 之后由中书契约固定，主会话不预设。")
+        goal = str(call.get("goal") or "")
+        if not quoted_by_user(goal, data.get("transcript_path")):
+            return deny("create 的 --goal 必须是用户在本会话说过的原话（一字不差），主会话不改写用户的话。")
+        if len(goal_payload(goal)) < 2:
+            return deny("这句话只有调用词，没有任务内容：不开链、不建任务；先用一句话问用户要办什么，"
+                        "拿到原话再 create。")
+        bind_main(root, runtime, session, task)
         return None
-    if sub != "append" or call.get("role") != "relay":
+    if sub != "append":
         return None
-    if seat not in (None, "relay"):
-        return deny(f"你是 {seat}，账本只接受 --role {seat}；角色由 hook 认定，不由自报。")
+    if role == "relay" and runtime != "codex":
+        return deny(f"本运行时的主席位是 {main_role}：/agentos 把本会话绑成中书，用 --role zhongshu 记账。")
+    if role != main_role:
+        return None
     kind = str(call.get("kind") or "")
-    task = str(call.get("task") or current_task(root, runtime, session) or "")
-    if kind not in RELAY_KINDS:
+    if runtime == "codex" and kind not in RELAY_KINDS:
         return deny("传旨会话只记录 user_message / pause / resume / stop 四种事件。")
+    if kind not in RELAY_KINDS:
+        return None  # a Claude 中书 record: the seat path below judges it
+    if seat not in (None, main_role):
+        return deny(f"你是 {seat}，账本只接受 --role {seat}；角色由 hook 认定，不由自报。")
+    task = str(call.get("task") or current_task(root, runtime, session) or "")
     if kind == "resume":
         if not task or not (root / "agent-os" / "state" / "tasks" / f"{aos_safe(task)}.jsonl").is_file():
             return deny("resume 需要 --task <已存在的任务号>；先用 aos_task_record.py board 查看未完成任务。")
-        bind_relay(root, runtime, session, task)
+        bind_main(root, runtime, session, task)
         return None
     if seat is None:
-        return deny("会话未绑定任务：先 create 新任务，或 append --role relay --kind resume --task <任务号>。")
+        return deny(f"会话未绑定任务：先 create 新任务，或 append --role {main_role} --kind resume --task <任务号>。")
     if kind == "user_message" and not quoted_by_user(str(call.get("text") or ""), data.get("transcript_path")):
-        return deny("user_message 的 --text 必须是用户在本会话说过的原话（一字不差）。")
+        return deny("user_message 的 --text 必须是用户在本会话说过的原话（一字不差；段落换行原样保留）。")
     if kind in ("pause", "stop"):
         unbind_relay(root, runtime, session)
     return None
+
+
+relay_ledger_gate = main_ledger_gate  # historical name
+
+
+def is_main_ledger_call(call: dict, runtime: str) -> bool:
+    if call.get("sub") == "create" or call.get("role") == "relay":
+        return True
+    return call.get("role") == MAIN_ROLES[runtime] and call.get("kind") in RELAY_KINDS
 
 
 def gate_pretool(data: dict, root: Path, runtime: str) -> dict | None:
@@ -592,12 +703,13 @@ def gate_pretool(data: dict, root: Path, runtime: str) -> dict | None:
         # Not on the chain: the only thing examined is a chain start/restart.
         if tool in SHELL_TOOLS:
             for call in ledger_calls(command_text(tool_input)):
-                decision = relay_ledger_gate(call, None, data, root, runtime, session)
+                decision = main_ledger_gate(call, None, data, root, runtime, session)
                 if decision:
                     return decision
         return None
     task_id = current_task(root, runtime, session)
-    state = phase(ledger_events(root, task_id)) if task_id else phase([])
+    events = ledger_events(root, task_id) if task_id else []
+    state = phase(events)
 
     if runtime == "codex" and tool.endswith("set_thread_title"):
         title = str(tool_input.get("title") or "")
@@ -736,8 +848,8 @@ def gate_pretool(data: dict, root: Path, runtime: str) -> dict | None:
         calls = ledger_calls(command)
         if calls:
             for call in calls:
-                if call["sub"] == "create" or call.get("role") == "relay":
-                    decision = relay_ledger_gate(call, seat, data, root, runtime, session)
+                if is_main_ledger_call(call, runtime):
+                    decision = main_ledger_gate(call, seat, data, root, runtime, session)
                     if decision:
                         return decision
                     continue
@@ -751,6 +863,9 @@ def gate_pretool(data: dict, root: Path, runtime: str) -> dict | None:
                     if call.get("kind") == "skill_load":
                         return deny("skill_load 不能自报；完整读取本席位 SKILL.md 后运行 aos_skill_receipt.py 生成哈希回执。")
                     call_task = call.get("task") or task_id
+                    if seat != MAIN_ROLES[runtime] and call_task and task_frozen(ledger_events(root, call_task)):
+                        return deny(f"任务 {call_task} 已被用户暂停/停止：席位不再写账，结束本轮即可；"
+                                    "主会话 resume 之后再继续。")
                     terminal_failure = (
                         call.get("kind") == TERMINAL_FAILURE_KINDS.get(seat)
                         and call.get("status") in ("failed", "blocked")
@@ -763,7 +878,9 @@ def gate_pretool(data: dict, root: Path, runtime: str) -> dict | None:
                     if call.get("kind") == "integration" and seat == "shangshu" and not terminal_failure:
                         call_state = phase(ledger_events(root, call_task))
                         if not call_state["executed"]:
-                            return deny("执行体尚未用 --role executor 写 execution_result；尚书不能提前写 integration。")
+                            return deny("执行体尚未用 --role executor 写 execution_result；尚书不能提前写 integration --status done。"
+                                        "执行体丢了或卡住时的出口：append --role shangshu --kind integration --status blocked "
+                                        "--text <原因与已核实的事实>，然后结束——闸门绝不锁死。")
                     if call.get("kind") == "bypass":
                         if seat != "menxia":
                             return deny("放行（bypass）只能由门下在读过用户原话后记录；中书不能给自己放行。")
@@ -777,6 +894,11 @@ def gate_pretool(data: dict, root: Path, runtime: str) -> dict | None:
         if seat == "yushi" and task_forbids_project_writes(root, task_id):
             return deny("本任务权限边界是只读：御史只能读证据并写 agent-os/state/ 账本，"
                         "不得运行其他 shell、写 wiki 或刷新 memory views；记录 error_record/deferred 后结束。")
+        if LEDGER_FILE_RE.search(command) and (MUTATION.search(command) or REDIRECT.search(command)):
+            return deny("任务账本只能通过 aos_task_record.py 追加；不得用重定向、脚本或编辑器直接写 agent-os/state/tasks/。")
+        if seat in ("relay", "zhongshu", "menxia", "shangshu") and SLEEP_POLL.search(command):
+            return deny("席位不用 sleep 轮询等结果：要么用同步 Agent 调用（run_in_background=false）直接拿返回值，"
+                        "要么（Claude 主会话）把当前进展说给用户、结束本轮，等后台席位的完成通知再继续。")
         if seat in ("relay", "zhongshu", "menxia", "shangshu") and (MUTATION.search(command) or REDIRECT.search(command)):
             if seat == "zhongshu" and state["bypass"]:
                 return None
@@ -795,19 +917,21 @@ def gate_pretool(data: dict, root: Path, runtime: str) -> dict | None:
             return None
         if runtime == "codex":
             return deny("席位用 codex_app create_thread / send_message_to_thread")
+        if tool_input.get("isolation"):
+            return deny("AgentOS 席位必须在当前项目目录里跑（钩子按项目根判定）；不用 isolation/worktree。")
         if target == "agentos-zhongshu":
-            if seat != "relay":
-                return deny("中书由传旨会话派出：先 aos_task_record.py create 建任务（绑定会话）。")
-            if not task_id:
-                return deny("先用 aos_task_record.py create 建任务记录，再派中书。")
-            if not prompt_quotes_user(str(tool_input.get("prompt") or ""), data.get("transcript_path")):
-                return deny("发给中书的提示必须原样包含用户说过的话（一字不差）；传旨会话不转述。")
-            return retitle(tool, tool_input, target, root, task_id)
+            return deny("Claude 上中书就是本会话：用户以 /agentos 调用后，主会话 create 建任务即绑定为中书，"
+                        "直接派门下、尚书；不派中书子代理。")
         if seat == "relay":
             return deny("传旨会话只派中书；门下、尚书、执行体、御史由链上席位派出。")
+        if seat is None:
+            return deny("会话未绑定任务：先 aos_task_record.py create（或 resume）把本会话绑成中书，再派席位。")
         if target in ("agentos-menxia", "agentos-yushi"):
             if seat != "zhongshu":
                 return deny(f"只有中书能派 {SEATS[target]}。")
+            if target == "agentos-menxia" and not prompt_quotes_user(
+                    str(tool_input.get("prompt") or tool_input.get("message") or ""), data.get("transcript_path")):
+                return deny("发给门下的提示必须原样包含用户这一轮说过的话（一字不差）：门下先看原话，不看中书的读法。")
             return retitle(tool, tool_input, target, root, task_id)
         if target == "agentos-shangshu":
             if seat != "zhongshu":
@@ -827,6 +951,8 @@ def gate_pretool(data: dict, root: Path, runtime: str) -> dict | None:
 
     if tool in WRITE_TOOLS:
         targets = write_targets(root, tool_input)
+        if any(t.startswith(STATE_PREFIX + "tasks/") for t in targets):
+            return deny("任务账本只能通过 aos_task_record.py 追加，不直接编辑 agent-os/state/tasks/。")
         if targets and all(t.startswith(STATE_PREFIX) for t in targets):
             return None
         if seat == "relay":
@@ -900,18 +1026,18 @@ def zhongshu_stop(root: Path, runtime: str, task_id: str | None) -> dict | None:
         return None
     events = ledger_events(root, task_id)
     state = phase(events)
-    if state["delivered"] or state["terminal_failure"]:
+    if state["delivered"] or state["terminal_failure"] or task_frozen(events):
         return None
     if not valid_skill_receipt(root, task_id, "zhongshu", runtime):
         return block("中书尚无有效技能加载回执：完整读取 seat-skills.json 列出的 SKILL.md，"
                      "再运行 aos_skill_receipt.py。")
-    latest_relay = max((str(e.get("ts") or "") for e in events
-                        if e.get("role") == "relay" and e.get("kind") == "user_message"), default="")
-    if any(e.get("role") == "zhongshu" and e.get("kind") != "skill_load"
-           and str(e.get("ts") or "") > latest_relay for e in events):
+    latest_user = max((str(e.get("ts") or "") for e in events
+                       if e.get("kind") == "user_message" and e.get("role") in MAIN_ROLES.values()), default="")
+    if any(e.get("role") == "zhongshu" and e.get("kind") not in ("skill_load", "user_message", "resume")
+           and str(e.get("ts") or "") > latest_user for e in events):
         return None
-    return block(f"任务 {task_id} 这一轮用户增量还没有中书记录：先把本轮结论或阶段写进账本"
-                 "（append --role zhongshu …），交付时记 delivery，再结束。")
+    return block(f"任务 {task_id} 这一轮用户增量还没有中书记录：先写一条（append --role zhongshu "
+                 "--kind candidate|question|progress|contract …），交付时记 delivery，再结束。只拦这一次。")
 
 
 def gate_stop(data: dict, root: Path, runtime: str) -> dict | None:
@@ -941,6 +1067,8 @@ def gate_subagent_stop(data: dict, root: Path, runtime: str) -> dict | None:
     if not task_id:
         return None
     events = ledger_events(root, task_id)
+    if task_frozen(events):
+        return None
     terminal_kind = TERMINAL_FAILURE_KINDS.get(seat)
     if terminal_kind and any(
         e.get("role") == seat and e.get("kind") == terminal_kind
@@ -962,7 +1090,9 @@ def gate_subagent_stop(data: dict, root: Path, runtime: str) -> dict | None:
         if not state["dispatched"]:
             return block("尚书结束前必须写 dispatch 并派出执行体。")
         if not state["executed"]:
-            return block("尚书已 dispatch，但执行体还没有自己的 execution_result；等待执行体完成。")
+            return block("尚书已 dispatch，但执行体还没有自己的 execution_result。同步 Agent 调用返回后它应已写入；"
+                         "若执行体丢了或卡住，写 append --role shangshu --kind integration --status blocked "
+                         "--text <原因> 再结束（闸门绝不锁死）。只拦这一次。")
         if not state["integrated"]:
             return block("执行体已有 execution_result；尚书结束前必须核对 done_when 并写 integration。")
         return None

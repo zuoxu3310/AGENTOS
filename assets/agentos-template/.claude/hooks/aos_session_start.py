@@ -26,12 +26,16 @@ def main() -> int:
     error = "; ".join(problems) if problems else "none"
     task = binding.get("task_id") or ""
     entry = (
-        f'<agentos_relay task="{task}">THIS SESSION IS the 传旨 relay for task {task}: '
-        "carry the user's words VERBATIM to the agentos-zhongshu agent (Agent tool, "
-        f"description 中书省｜<task-title>｜{task}), bring its reply back unchanged; never think for 中书, "
-        "never edit files, never run write-shaped shell; the ledger takes only "
-        "`append --role relay --kind user_message|pause|resume|stop`.</agentos_relay>\n"
-    ) if binding.get("seat") == aos.RELAY_SEAT else ""
+        f'<agentos_zhongshu task="{task}">THIS SESSION IS 中书省 (Zhongshu) for task {task}: '
+        "the user invoked the `agentos` skill and this main session is the bound 中书 seat. "
+        "Work by `.claude/skills/agentos/SKILL.md` and `agent-os/workflows/zhongshu.md`: record "
+        "each user message VERBATIM (`append --role zhongshu --kind user_message`), give 门下 the raw "
+        "words first (Agent agentos-menxia), 尚书 only after 门下's pass, ONE delivery recorded as "
+        "`delivery`; never edit project files or run write-shaped shell yourself, never sleep-poll a "
+        "seat — say what is happening and end the turn, the completion notification wakes you. "
+        "Pause/stop: TaskStop every running seat, then `append --role zhongshu --kind pause|stop`."
+        "</agentos_zhongshu>\n"
+    ) if binding.get("seat") == aos.MAIN_SEATS.get("claude") else ""
     context = (
         '<agentos_attention phase="restore">\n'
         + entry +

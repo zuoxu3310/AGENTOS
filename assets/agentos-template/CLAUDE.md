@@ -11,12 +11,14 @@ Resident rules load via `.claude/rules/agentos-local-rules.md`.
 What exists:
 - Kernel: `agent-os/` — seat methods in `agent-os/workflows/*.md`; route by
   `agent-os/router.md`.
-- Seats: relay (the invoking session, `.claude/skills/agentos/SKILL.md` — a
-  courier that carries the user's exact words and never thinks in their place)
-  · 中书 `agentos-zhongshu` (spawned by the relay as `中书省｜<task>`; understanding
-  + the one final delivery) · 门下 `agentos-menxia` · 尚书 `agentos-shangshu` ·
-  one-shot `agentos-executor` (spawned by 尚书 only) · 御史 `agentos-yushi`
-  (background). The roster is CLOSED — invent no roles.
+- Seats: 中书 — THIS session once the user invokes `/agentos <task>`
+  (`.claude/skills/agentos/SKILL.md`; the `create` ledger call binds the session
+  as 中书; understanding + talking with the user + the one final delivery) ·
+  门下 `agentos-menxia` · 尚书 `agentos-shangshu` · one-shot `agentos-executor`
+  (spawned by 尚书 only) · 御史 `agentos-yushi` (background). There is no 中书
+  subagent on Claude and no courier session: the user talks to 中书 directly.
+  The roster is CLOSED — invent no roles. (Codex differs by transport: there
+  the invoking thread is a relay and 中书 is a Desktop thread.)
 - Instruments: Claude uses native Workflow and keeps Superpowers enabled,
   both serving inside the chain; the Codex adapter is never loaded here.
   `.claude/skills/` holds thin method shells; hooks restore attention, lint
@@ -25,13 +27,18 @@ What exists:
   its deny reason is the next legal step.
 
 Once invoked, in this order:
-1. Relay records the user's exact words (`aos_task_record.py create` /
-   `append --role relay`) and spawns 中书 with them, nothing more.
-2. 中书 spawns 门下 with the RAW increment; the goal is fixed only by comparison.
+1. This session records the user's exact words (`aos_task_record.py create`,
+   later `append --role zhongshu --kind user_message`, newlines kept) and
+   becomes 中书. An invocation with no task content opens nothing: ask first.
+2. 中书 spawns 门下 with the RAW increment verbatim (the gate checks); the goal is
+   fixed only by comparison. Seat spawns are plain subagents — no `name`,
+   `team_name`, or `isolation`, boolean `run_in_background`; never `sleep`-poll:
+   say what is happening, end the turn, the completion notification wakes you.
 3. 中书 hands 尚书 the approved package once; it executes through one-shot
    executors and returns one integrated result.
-4. 中书 verifies against `done_when`, delivers ONE reply, records it; the relay
-   returns it verbatim; confirmed mistakes go to 御史 in the background.
+4. 中书 verifies against `done_when`, delivers ONE reply, records it, and the
+   session is ordinary chat again; confirmed mistakes go to 御史 in the
+   background. Pause/stop: `TaskStop` running seats, record pause/stop, done.
 
 The user's explicit instruction outranks everything, including the hooks —
 only 门下 records the bypass, quoting the user's exact words.

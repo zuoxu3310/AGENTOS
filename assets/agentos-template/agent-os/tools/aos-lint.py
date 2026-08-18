@@ -76,7 +76,6 @@ REQUIRED_FILES = [
     ".claude/agents/agentos-menxia.md",
     ".claude/agents/agentos-shangshu.md",
     ".claude/agents/agentos-yushi.md",
-    ".claude/agents/agentos-zhongshu.md",
     ".claude/hooks/aos_common.py",
     ".claude/hooks/aos_kernel_lint.py",
     ".claude/hooks/aos_prompt_baseline.py",
@@ -181,7 +180,8 @@ PATTERNS = {
         r"agentos-local-rules\.md",
         r"native Workflow",
         r"BEGIN AGENTOS ENTRY CONTRACT",
-        r"agentos-zhongshu",
+        r"agentos-menxia",
+        r"THIS session",
     ],
     "agent-os/router.md": [
         r"active user object",

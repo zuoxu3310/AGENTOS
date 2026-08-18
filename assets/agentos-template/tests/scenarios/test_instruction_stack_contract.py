@@ -73,19 +73,35 @@ class InstructionStackContractTests(unittest.TestCase):
         self.assertIn("角色｜任务简称｜任务号", gate)
         self.assertIn("aos_task_record.py title --task <id>", skill)
 
-    def test_chain_is_opt_in_through_one_relay_skill_on_both_runtimes(self) -> None:
+    def test_chain_is_opt_in_through_one_skill_per_runtime_with_one_kernel(self) -> None:
+        """Same kernel, two transports: on Codex the invoking thread is a relay and
+        中书 is a Desktop thread; on Claude the invoking session IS 中书 (the shape
+        the user had before 2026-08-17 — a courier session on Claude hid the
+        chain for an hour on 2026-08-18)."""
         codex_skill = read(".agents/skills/agentos/SKILL.md")
         claude_skill = read(".claude/skills/agentos/SKILL.md")
-        self.assertEqual(codex_skill, claude_skill)
-        self.assertIn("name: agentos", codex_skill)
-        self.assertIn("ONLY when the user explicitly invokes", codex_skill)
-        for phrase in ("--role relay --kind resume", "--kind pause", "--kind stop",
-                       "never summarizes", "t<YYYYMMDD-HHMM>", "agentos-zhongshu",
-                       "codex_app.create_thread"):
+        self.assertNotEqual(codex_skill, claude_skill)
+        for skill in (codex_skill, claude_skill):
+            self.assertIn("name: agentos", skill)
+            self.assertIn("ONLY when the user explicitly invokes", skill)
+            for phrase in ("No payload, no chain", "t<YYYYMMDD-HHMM>", "--kind pause", "--kind stop",
+                           "aos_task_record.py title --task <id>", "freeze the ledger"):
+                self.assertIn(phrase, skill)
+        for phrase in ("--role relay --kind resume", "never summarizes", "codex_app.create_thread",
+                       "中书省｜<task-title>｜<id>"):
             self.assertIn(phrase, codex_skill)
+        self.assertNotIn("Agent(agentos-zhongshu)", codex_skill)
+        for phrase in ("this session is 中书", "--role zhongshu --kind resume",
+                       "--role zhongshu --kind user_message", "Agent(agentos-menxia)",
+                       "Agent(agentos-shangshu)", "TaskStop", "my call failed", "strongest rival",
+                       "never suggest a verdict", "Never `sleep`-poll", "END THE TURN",
+                       "`name`, `team_name`, or `isolation`", "Read `agent-os/workflows/zhongshu.md`"):
+            self.assertIn(phrase, claude_skill)
+        self.assertNotIn("codex_app", claude_skill.split("## Who you are")[1])
         settings = read(".claude/settings.json")
         self.assertNotIn('"agent"', settings)
         self.assertFalse((ROOT / ".claude/agents/agentos-entry.md").exists())
+        self.assertFalse((ROOT / ".claude/agents/agentos-zhongshu.md").exists())
         config = read(".codex/config.toml")
         self.assertIn("Ordinary chat is the default", config)
         self.assertIn("`agentos` skill", config)
@@ -94,12 +110,10 @@ class InstructionStackContractTests(unittest.TestCase):
         for entry in (read("AGENTS.md"), read("CLAUDE.md")):
             self.assertIn("ordinary chat is the default", entry)
             self.assertNotIn("every request runs the three-departments", entry)
-        zhongshu = read(".claude/agents/agentos-zhongshu.md")
-        for phrase in ("my call failed", "strongest rival", "never `create`", "NO wording"):
-            self.assertIn(phrase, zhongshu)
         workflow = read("agent-os/workflows/zhongshu.md")
         self.assertIn("never suggests one", workflow)
-        self.assertIn("you never `create`", workflow)
+        self.assertIn("On Claude you ARE the", workflow)
+        self.assertIn("An invocation with no task content opens nothing", workflow)
 
     def test_claude_keeps_native_workflow_without_codex_guard(self) -> None:
         claude = read("CLAUDE.md")
@@ -112,37 +126,36 @@ class InstructionStackContractTests(unittest.TestCase):
         self.assertIn('"PostToolUse"', settings)
 
     def test_claude_seats_use_synchronous_agent_results_not_idle_team_messages(self) -> None:
-        zhongshu = read(".claude/agents/agentos-zhongshu.md")
         menxia = read(".claude/agents/agentos-menxia.md")
         shangshu = read(".claude/agents/agentos-shangshu.md")
         executor = read(".claude/agents/agentos-executor.md")
-        for text in (zhongshu, menxia, shangshu, executor):
+        for text in (menxia, shangshu, executor):
             tools = text.split("---", 2)[1]
             self.assertNotIn("SendMessage", tools)
-        for phrase in (
-            "two separate synchronous `Agent(agentos-menxia)` calls",
-            "run_in_background=false",
-            "never poll the ledger",
-        ):
-            self.assertIn(phrase, zhongshu)
         self.assertIn("Each spawn handles exactly the phase named", menxia)
         self.assertIn("Agent(agentos-executor)", shangshu)
+        for phrase in ("run_in_background=false", "never `name`, `team_name`, or\n`isolation`",
+                       "never `sleep`-poll", "integration --status blocked"):
+            self.assertIn(phrase, shangshu)
         self.assertIn("synchronous Agent result", executor)
         workflow = read("agent-os/workflows/zhongshu.md")
         self.assertIn("two separate synchronous `Agent(agentos-menxia)`", workflow)
-        self.assertIn("Never use `SendMessage` to an ended Claude agent", workflow)
+        self.assertIn("never use `SendMessage` to an ended Claude agent", workflow)
+        self.assertIn("never `sleep`-poll", workflow)
 
-    def test_relay_pause_and_stop_have_fixed_non_inferential_replies(self) -> None:
-        skill = read(".claude/skills/agentos/SKILL.md")
-        self.assertEqual(skill, read(".agents/skills/agentos/SKILL.md"))
-        self.assertIn("已暂停任务 <id>；席位保留", skill)
-        self.assertIn("已停止任务 <id>；本会话回到普通聊天", skill)
-        self.assertIn("Do not add a diagnosis, execution history", skill)
+    def test_pause_and_stop_have_fixed_non_inferential_replies_on_both_runtimes(self) -> None:
+        for path in (".claude/skills/agentos/SKILL.md", ".agents/skills/agentos/SKILL.md"):
+            skill = read(path)
+            self.assertIn("已暂停任务 <id>；席位保留", skill)
+            self.assertIn("已停止任务 <id>；本会话回到普通聊天", skill)
+            self.assertIn("Do not add a diagnosis, execution history", skill)
 
-    def test_relay_preserves_invocation_and_yushi_respects_read_only_contracts(self) -> None:
-        skill = read(".claude/skills/agentos/SKILL.md")
+    def test_main_seat_preserves_invocation_and_yushi_respects_read_only_contracts(self) -> None:
+        skill = " ".join(read(".claude/skills/agentos/SKILL.md").split())
         self.assertIn('"Exact words" includes the invocation token', skill)
-        self.assertIn("reconstruct the full\n   line as `/agentos`", skill)
+        self.assertIn("reconstruct the full line as `/agentos`", skill)
+        codex = " ".join(read(".agents/skills/agentos/SKILL.md").split())
+        self.assertIn("preserve the user's full `$agentos ...` message", codex)
         yushi_agent = read(".claude/agents/agentos-yushi.md")
         yushi_workflow = read("agent-os/workflows/yushi.md")
         for text in (yushi_agent, yushi_workflow):
@@ -306,7 +319,7 @@ class InstructionStackContractTests(unittest.TestCase):
         name skills or capabilities in the abstract (wiki/errors
         root-named-is-not-possessed, recurrence 3)."""
         for contract in (
-            ".claude/agents/agentos-zhongshu.md",
+            ".claude/skills/agentos/SKILL.md",
             ".claude/agents/agentos-menxia.md",
             ".claude/agents/agentos-shangshu.md",
             ".claude/agents/agentos-executor.md",

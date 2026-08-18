@@ -48,6 +48,13 @@ def runtime_session(data: dict) -> str:
 
 
 RELAY_SEAT = "agentos-relay"
+# The seat a *main* session takes when the user invokes the `agentos` skill.
+# Codex: a relay (太监) that carries exact words to the 中书省 Desktop thread.
+# Claude: the session itself is 中书 and spawns the other seats as subagents.
+MAIN_SEATS = {"codex": RELAY_SEAT, "claude": "agentos-zhongshu"}
+MAIN_ROLES = {"codex": "relay", "claude": "zhongshu"}
+SEAT_TYPES = ("agentos-zhongshu", "agentos-menxia", "agentos-shangshu",
+              "agentos-executor", "agentos-yushi")
 
 
 def _safe(value: str) -> str:
@@ -77,15 +84,57 @@ def _delivery_epoch(root: Path, task_id: str) -> float | None:
     return latest
 
 
+def spawn_agent_type(data: dict) -> str | None:
+    """The seat type a Claude subagent was really spawned as, read from the
+    runtime's own agent metadata (`agent-<id>.meta.json`, key customAgentType /
+    agentType). Named or teamed spawns report the *name* as hook `agent_type`
+    (seen 2026-08-18: `exec-pointer-truth` for an agentos-executor); this is the
+    mechanical fallback. Fail-open: None when nothing readable."""
+    agent_id = str(data.get("agent_id") or "")
+    transcript = str(data.get("transcript_path") or "")
+    if not agent_id or not transcript:
+        return None
+    base = Path(transcript)
+    candidates = [
+        base.with_suffix("") / "subagents" / f"agent-{agent_id}.meta.json",
+        base.parent / f"agent-{agent_id}.meta.json",
+        base.parent / "subagents" / f"agent-{agent_id}.meta.json",
+    ]
+    for path in candidates:
+        try:
+            meta = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(meta, dict):
+            continue
+        for key in ("customAgentType", "agentType"):
+            value = str(meta.get(key) or "")
+            if value in SEAT_TYPES:
+                return value
+    return None
+
+
+def seat_agent_type(data: dict) -> str | None:
+    """Claude seat identity from hook input: `agent_type` when it names a seat,
+    else the spawn metadata fallback. None for a non-seat subagent."""
+    agent_type = str(data.get("agent_type") or "")
+    if agent_type in SEAT_TYPES and data.get("agent_id"):
+        return agent_type
+    if data.get("agent_id"):
+        return spawn_agent_type(data)
+    return None
+
+
 def chain_binding(root: Path, runtime: str, data: dict) -> dict | None:
     """The mechanical fact every hook keys on: is this session on the chain?
     Seat subagents/threads are bound by identity (agent_type or the session
     mapping the chain gate wrote); a main session is bound only while it is
-    the relay of a task that was started by the `agentos` skill and is not
-    paused/stopped/delivered. None → the hook must be a silent no-op."""
-    agent_type = str(data.get("agent_type") or "")
-    if agent_type.startswith("agentos-") and agent_type != "agentos-entry" and data.get("agent_id"):
-        return {"seat": agent_type, "task_id": None}
+    the runtime's main seat (Codex relay / Claude 中书) of a task that was
+    started by the `agentos` skill and is not paused/stopped/delivered.
+    None → the hook must be a silent no-op."""
+    if data.get("agent_id"):
+        seat_type = seat_agent_type(data)
+        return {"seat": seat_type, "task_id": None} if seat_type else None
     path = root / "agent-os" / "state" / "sessions" / f"{runtime}-{_safe(runtime_session(data))}.json"
     try:
         mapping = json.loads(path.read_text(encoding="utf-8"))
@@ -93,7 +142,10 @@ def chain_binding(root: Path, runtime: str, data: dict) -> dict | None:
         return None
     if not isinstance(mapping, dict) or not mapping.get("seat"):
         return None
-    if mapping.get("seat") == RELAY_SEAT:
+    seat = mapping.get("seat")
+    if seat == RELAY_SEAT and runtime != "codex":
+        return None  # legacy Claude relay binding: not a seat any more
+    if seat in MAIN_SEATS.values() and ("bound" in mapping or seat == RELAY_SEAT):
         if mapping.get("bound") is False:
             return None
         task_id = mapping.get("task_id")

@@ -19,10 +19,14 @@ visible in the one integrated output.
 
 ## Per Task
 
-The relay (the user's invoking session) has already created the task record
-with the user's exact words as goal (`t<YYYYMMDD-HHMM>`) and opened this seat
-as `中书省｜<task-title>｜<id>`; you never `create`. On Codex, read the task id from the first
-message; on Claude it is in your spawn prompt. Read every Zhongshu skill in
+Where you sit depends on the runtime. On Codex the relay (the user's invoking
+thread) has already created the task record with the user's exact words as goal
+(`t<YYYYMMDD-HHMM>`) and opened this seat as `中书省｜<task-title>｜<id>`; you never
+`create` there — read the task id from the first message. On Claude you ARE the
+user's invoking session: `/agentos` made you create the record yourself with the
+user's exact words (that `create` bound the session as 中书), and the user talks to
+you directly. An invocation with no task content opens nothing: ask first.
+Either way, read every Zhongshu skill in
 `agent-os/skills/seat-skills.json` completely, then run
 `python3 agent-os/tools/aos_skill_receipt.py --task <id> --role zhongshu
 --runtime <codex|claude>` with the current runtime.
@@ -40,18 +44,24 @@ immediately; Shangshu receives the approved package only after Menxia's
 
 ## Per User Increment
 
-1. The relay records it (`append --role relay --kind user_message`); you read
-   it from the relay's message, verbatim.
+1. The increment is recorded verbatim, newlines kept: on Codex the relay does
+   it (`append --role relay --kind user_message`) and you read it from the
+   relay's message; on Claude you do it yourself first thing
+   (`append --role zhongshu --kind user_message`).
 2. Start Menxia with the RAW increment verbatim — no candidate, framing, task
    naming, or hint of your reading. Form your candidate meanwhile, then deliver
    it as Phase B to the same thread with `codex_app.send_message_to_thread`;
    use `codex_app.wait_threads` and `codex_app.read_thread` for its result.
    On Claude, instead use two separate synchronous `Agent(agentos-menxia)`
-   calls with `run_in_background=false`: Phase A receives only the RAW
-   increment and returns after `independent_review`; Phase B is a fresh call
-   that receives the recorded Phase A product plus the candidate and returns
-   after `comparison`. Never use `SendMessage` to an ended Claude agent and
-   never poll the ledger waiting for it.
+   calls with `run_in_background=false` (a real boolean; never `name`,
+   `team_name`, or `isolation` — the gate strips or refuses them because a
+   named/teamed spawn loses its seat identity): Phase A receives only the RAW
+   increment (the gate checks the user's words are in the prompt) and returns
+   after `independent_review`; Phase B is a fresh call that receives the
+   recorded Phase A product plus the candidate and returns after `comparison`.
+   A background call is allowed only in the pattern "say one line to the user,
+   end the turn, the completion notification wakes you"; never `sleep`-poll,
+   never use `SendMessage` to an ended Claude agent, never poll the ledger.
    Phase B asks for a verdict and never suggests one: no "if complete, record
    pass", no "confirm", no leading close — a candidate and a request to compare.
 3. Goal and `done_when` are fixed by comparison: your candidate against
@@ -67,8 +77,11 @@ immediately; Shangshu receives the approved package only after Menxia's
    against `done_when` yourself before believing it. Before writing the
    delivery, work by `agent-os/review/delivery-gate.md`; if the project's
    exemplar library has an accepted shape for this class, copy it (the
-   gate defines the empty case). Deliver ONE natural-language reply (the relay
-   returns it verbatim) and record the delivery. A delivery must not
+   gate defines the empty case). Deliver ONE natural-language reply (on Codex
+   the relay returns it verbatim; on Claude you say it to the user yourself)
+   and record the delivery. On Claude, do not hold a finished judgment the
+   user asked for behind a small execution node: what is ready and
+   independently checked goes out when it is ready. A delivery must not
    precede its mandated independent check; anything shipped earlier carries
    an explicit retroactive/provisional marker. The task record is append-only:
    never edit an existing delivery to add that marker. A later classification
@@ -77,8 +90,11 @@ immediately; Shangshu receives the approved package only after Menxia's
    `provisional`), and a non-empty `reason`, while `evidence` anchors the audit.
    The sequencing lint accepts it only after the targeted first delivery.
 6. Every turn leaves a zhongshu record — a candidate, a question to the user
-   (relayed verbatim), or the delivery. Propagate the user's time budget into
-   the dispatch.
+   (relayed verbatim on Codex; asked directly on Claude), progress, the
+   contract, or the delivery. Propagate the user's time budget into the
+   dispatch. Pause/stop (Codex: relay records; Claude: you record after
+   `TaskStop`-ing every running seat) freeze the ledger for all seats until
+   `resume`.
 
 ## Teammate Prompts
 

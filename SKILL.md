@@ -55,14 +55,18 @@ python3 scripts/test_installer_behavior.py
 
 The template wires SessionStart, UserPromptSubmit, Stop, PreToolUse,
 PostToolUse, and SubagentStop hooks for Claude and Codex, plus the `agentos`
-relay skill and the seat contracts (zhongshu, menxia, shangshu, executor,
-yushi). Every hook is silent for a session that has not invoked the `agentos`
+skill (one per runtime, same kernel: on Codex the invoking thread is a relay to
+the 中书 Desktop thread; on Claude the invoking session itself is 中书) and the
+seat contracts (menxia, shangshu, executor, yushi on Claude; all five as Codex
+TOML). Every hook is silent for a session that has not invoked the `agentos`
 skill; SessionStart only says AgentOS is installed. Once the user invokes the
-skill, the session is bound as the relay and the shared chain gate
-(`aos_chain_gate.py`, byte-identical in `.claude/hooks/` and `.codex/hooks/`)
-enforces seat order on two mechanical facts only — who is calling and what the
-append-only task ledger says. Hooks never decide intent, route, authorization,
-or semantic completion.
+skill with real task content, the session is bound as the runtime's main seat
+and the shared chain gate (`aos_chain_gate.py`, byte-identical in
+`.claude/hooks/` and `.codex/hooks/`) enforces seat order on two mechanical
+facts only — who is calling (hook identity, with the runtime's spawn metadata
+as fallback) and what the append-only task ledger says. Hooks never decide
+intent, route, authorization, or semantic completion, and never lock the chain:
+every waiting gate names its exit.
 
 - If the target already has `.claude/settings.json`, the installer JSON-merges the hook config and never removes existing user settings.
 - Claude hooks take effect from the next Claude Code session in the target project; the first session may ask the user to approve the new project hooks.

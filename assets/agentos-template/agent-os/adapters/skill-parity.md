@@ -43,7 +43,7 @@ Codex skills may include `agents/openai.yaml`. Claude skills must not depend on 
 | Delivery Gate | `agent-os/review/delivery-gate.md` | `.agents/skills/delivery-review/SKILL.md` | `.claude/skills/delivery-review/SKILL.md` | added |
 | Cognition workflow + five seat workflows | `agent-os/workflows/{cognition,zhongshu,menxia,shangshu,executor,yushi}.md` | chain wiring (`.codex/agents/*.toml` + `.codex/hooks/aos_chain_gate.py`) | chain wiring (seat contracts in `.claude/agents/`) | chain-constitutive; no shell by design — seats read them at birth |
 | Delivery-recheck Stop discipline | machine layer (`.codex/hooks/aos_stop_gate.py`, `.claude/hooks/aos_stop_gate.py`) | Codex Stop hook | Claude Stop hook | hook parity, no kernel gate document |
-| Chain entry (relay / 太监) | `agent-os/adapters/codex-workflow.md`, `agent-os/workflows/zhongshu.md` | `.agents/skills/agentos/SKILL.md` (user-invoked `$agentos`) | `.claude/skills/agentos/SKILL.md` (user-invoked `/agentos`) | added; opt-in entry, courier only |
+| Chain entry (`agentos`) | `agent-os/adapters/codex-workflow.md`, `agent-os/workflows/zhongshu.md` | `.agents/skills/agentos/SKILL.md` (user-invoked `$agentos`; the thread is a relay / 太监) | `.claude/skills/agentos/SKILL.md` (user-invoked `/agentos`; the session is 中书 itself) | opt-in entry; same kernel, transport-specific skill text by design (2026-08-18) |
 | Fusion Workflow | `agent-os/workflows/fusion-workflow.md` | `.agents/skills/fusion-workflow/SKILL.md` | `.claude/skills/fusion-workflow/SKILL.md` | added |
 
 ## Support Skills

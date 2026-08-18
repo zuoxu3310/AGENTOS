@@ -76,11 +76,17 @@ class HookHarness:
 
     def bind_relay(self, task: str = "t20260817-0930") -> None:
         """Put this session on the chain the way the `agentos` skill does: the chain gate
-        binds the main session as the relay of a task."""
+        binds the main session as the runtime's main seat of a task — the relay on
+        Codex, 中书 itself on Claude."""
+        seat = "agentos-relay" if self.runtime == "codex" else "agentos-zhongshu"
         path = self.root / "agent-os" / "state" / "sessions" / f"{self.runtime}-{SESSION}.json"
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"seat": "agentos-relay", "task_id": task, "bound": True,
+        path.write_text(json.dumps({"seat": seat, "task_id": task, "bound": True,
                                     "ts": 1.0}), encoding="utf-8")
+
+    @property
+    def main_tag(self) -> str:
+        return "agentos_relay" if self.runtime == "codex" else "agentos_zhongshu"
 
     def write_state(self, active_work: dict) -> None:
         path = self.state_path()
@@ -145,7 +151,7 @@ class RuntimeAdapterContractTests(unittest.TestCase):
                     self.assertEqual(0, result.returncode, result.stderr)
                     context = additional_context(result)
                     self.assertIn('phase="restore"', context)
-                    self.assertIn("agentos_relay", context)
+                    self.assertIn(harness.main_tag, context)
                     self.assertIn("Deliver the long-task result", context)
                     self.assertIn(str(harness.state_path()), context)
                     for word in forbidden:

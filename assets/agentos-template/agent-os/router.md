@@ -23,8 +23,8 @@ runtime capability. The active user object remains the route anchor.
 | Shaping any user-facing delivery or report | `agent-os/review/delivery-gate.md` | `delivery-review` |
 | Completion, status, problem, or decision reporting | `agent-os/review/task-contract.md` + `agent-os/review/evidence-to-claim-gate.md` | `lifecycle-execution` |
 | Full task lifecycle | `agent-os/workflows/agent-execution-lifecycle.md` | `lifecycle-execution` |
-| Task orchestration on Claude (three departments, user-invoked) | `agent-os/rules-card.md` | `agentos` skill relay → `agentos-zhongshu` seat |
-| Vague intent or explicit think-through deliberation | `agent-os/workflows/think-through.md` | constitutive Zhongshu duty (`agentos-zhongshu`) |
+| Task orchestration on Claude (three departments, user-invoked) | `agent-os/rules-card.md` | `agentos` skill: the session becomes 中书, spawns `agentos-menxia` / `agentos-shangshu` |
+| Vague intent or explicit think-through deliberation | `agent-os/workflows/think-through.md` | constitutive Zhongshu duty (the bound session on Claude, `agentos-zhongshu` thread on Codex) |
 | Task orchestration on Codex (three departments, user-invoked) | `agent-os/adapters/codex-workflow.md` | `agentos` skill relay; Desktop threads via `codex_app.create_thread` |
 | Explicit multi-model answer fusion | `agent-os/workflows/fusion-workflow.md` | `fusion-workflow` |
 | Durable memory, Wiki, ledgers, or handoff | `agent-os/memory/routing.md` | `memory-wiki-routing` |
@@ -34,8 +34,11 @@ runtime capability. The active user object remains the route anchor.
 ## Runtime Routes
 
 - The chain is opt-in on both runtimes: the user invokes the `agentos` skill
-  (`.agents/skills/agentos/`, `.claude/skills/agentos/`); the invoking session
-  is the relay and carries the user's exact words to 中书 and back.
+  (`.agents/skills/agentos/`, `.claude/skills/agentos/`). Same kernel, two
+  transports: on Codex the invoking thread is the relay and carries the user's
+  exact words to the 中书 thread and back; on Claude the invoking session itself
+  is 中书 and spawns the other seats as subagents. An invocation without task
+  content opens nothing.
 - Codex: seats are project threads created through `codex_app.create_thread`;
   `.codex/agents/` supplies developer
   instructions and the chain gate keeps their order. No thread simulates another seat.

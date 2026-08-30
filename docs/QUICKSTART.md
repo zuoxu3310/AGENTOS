@@ -1,37 +1,17 @@
-# AgentOS Quickstart
+# Quickstart
 
-## 1. Install into a project
+1. `python3 board/server.py 8765 ~/your-projects-root` → open http://127.0.0.1:8765/
+2. Pick a directory (any project under your root), say what you want done.
+3. The chain runs. It stops for you at three gates: a question from 中书 (rare, at most one), the contract (approve or send it back with a sentence), and the change set (adopt or revert, with per-file diffs).
+4. Follow-ups go to the same task; each message is a new turn of the full chain. Interject any time — a running reading restarts with your words merged.
+5. Modes (per task, in the panel): chain 1/2/3 · approval manual/auto · executor permission edits/auto/bypass.
+6. Phone: same URL on your LAN; narrow screens get the two-level layout. The process rail under the title opens the full live graph with a replay slider.
+
+CLI equivalent (what the `agentos` skill uses):
 
 ```bash
-python3 scripts/install-agentos.py /path/to/project
+python3 board/aos.py start
+python3 board/aos.py new "add a --name flag to hello.py" --root ~/proj
+python3 board/aos.py wait <id>      # returns when it is your turn, prints what to look at
+python3 board/aos.py approve <id> · adopt <id> · revert <id> · answer <id> "…" · say <id> "…" · stop <id>
 ```
-
-The installer adds the AgentOS kernel, the `agentos` relay skill, the seat contracts, and the runtime hooks. Existing entry documents and configuration are merged; existing Wiki and AgentOS state files are preserved. Use `--dry-run` to inspect the planned actions first.
-
-## 2. Validate the installed structure
-
-```bash
-python3 scripts/validate-agentos-install.py /path/to/project
-python3 /path/to/project/agent-os/tools/aos-lint.py
-```
-
-Validation proves structure, hook wiring, projections, and document contracts. It does not prove that a runtime has trusted or invoked the hooks.
-
-## 3. Start a session — ordinary chat by default
-
-Open a new Codex Desktop or Claude Code session in the project and approve the changed project hooks when the runtime asks. Nothing about the chain applies yet; SessionStart only says that AgentOS is installed.
-
-## 4. Run the chain when you want it
-
-```text
-$agentos <your request>     # Codex Desktop
-/agentos <your request>     # Claude Code
-```
-
-The session becomes the relay: it records your exact words, opens `中书省｜<task>` (a visible Desktop thread on Codex, a subagent on Claude), and relays every later message verbatim. 中书 opens 门下省 and 尚书省; 尚书 opens 执行体; 御史台 appears only for confirmed mistakes. Watch the task ledger at `agent-os/state/tasks/<task>.jsonl`: skill receipts, 门下 Phase A before any candidate, comparison pass, dispatch, one executor result, integration, delivery.
-
-Say "先停" or "关掉" to pause or stop; `$agentos 继续 <task>` (or `/agentos 继续 <task>`) resumes; after delivery the session is ordinary chat again.
-
-## Updating an existing project
-
-Run the same installer command again. Replaced files are backed up under `.agentos-backups/<timestamp>/`; `agent-os/state/**` and `wiki/**` are never overwritten; retired AgentOS files (old controllers, forced entry agents) are removed after backup.

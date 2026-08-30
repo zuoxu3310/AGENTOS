@@ -1,0 +1,80 @@
+{
+ "type": "object",
+ "properties": {
+  "summary": {
+   "type": "string",
+   "description": "一句话：这个计划怎么把契约落地"
+  },
+  "nodes": {
+   "type": "array",
+   "description": "执行节点，1 到 6 个，按派工顺序；后面的可以依赖前面的",
+   "items": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string",
+      "description": "n1、n2… 顺序编号"
+     },
+     "goal": {
+      "type": "string",
+      "description": "这个节点要达成的现实结果，一句话"
+     },
+     "scope": {
+      "type": "string",
+      "description": "范围边界与明确不做的"
+     },
+     "done_when_ref": {
+      "type": "string",
+      "description": "它反推自契约的哪一条完成条件（原文）"
+     },
+     "files": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "预计要改的文件，相对项目根"
+     },
+     "verify": {
+      "type": "string",
+      "description": "怎么验证：要跑的命令与预期可观察输出"
+     },
+     "depends": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "依赖的节点 id；没有给空数组"
+     }
+    },
+    "required": [
+     "id",
+     "goal",
+     "scope",
+     "done_when_ref",
+     "files",
+     "verify",
+     "depends"
+    ],
+    "additionalProperties": false
+   }
+  },
+  "refused": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "description": "拒绝掉的浪费（防御性膨胀、兼容层、冒烟表演……）；没有给空数组"
+  },
+  "budget_minutes": {
+   "type": "integer",
+   "description": "诚实估计的总时长，分钟"
+  }
+ },
+ "required": [
+  "summary",
+  "nodes",
+  "refused",
+  "budget_minutes"
+ ],
+ "additionalProperties": false
+}

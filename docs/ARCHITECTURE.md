@@ -1,38 +1,11 @@
-# AgentOS Architecture
+# Architecture
 
-## Why
+One task = one append-only event log (`board/tasks/<id>/events.jsonl`). Kinds: task (phase), step (role started/completed/failed, with its JSON output), message, gate, action, changes, tool (every Read/Edit/Bash a role performed, paired start/end), error. The panel and `aos.py` are pure readers of this log plus a small actions API; replay is just "apply events up to a cursor".
 
-A model under pressure drifts toward the appearance of work: agreeing, skipping review, declaring done. AgentOS separates understanding, independent review, and execution ownership into seats so no single thread can fake all three, and enforces their order with hooks that only look at mechanical facts.
+Chain per turn (mode 3): zhongshu reads (step 1) ∥ each menxia seat reads blind (1) → menxia compare & verdict (2) → zhongshu reply (3, may carry one question and the contract) → [contract gate] → shangshu plan (4) → executors (5, the only writers, serial with per-node snapshots) → shangshu integration (6) → zhongshu delivery (7) → [changes gate] → yushi audit (8). Modes 1/2 stop the chain at the reply.
 
-## The chain (三省六部)
+Roles are subprocesses: `claude -p --json-schema … --tools …` / `codex exec --json --output-schema …`, prompts assembled from `kernel/workflows/<role>.md` plus the materials of that step; a non-zero exit is a failure even if JSON was produced. Executor permission tiers map to `--permission-mode acceptEdits|auto|bypassPermissions` (Codex: workspace-write / danger-full-access).
 
-```text
-relay (太监)   the user's session once `agentos` is invoked; carries exact words both ways
-中书 Zhongshu  reconstructs the goal; sends the RAW increment to 门下 before forming a candidate;
-               fixes the contract after 门下 pass; verifies and records the one delivery
-门下 Menxia    Phase A independent reading (never sees the candidate first); Phase B compared verdict;
-               the only seat that may record the user's bypass, quoting the user verbatim
-尚书 Shangshu  turns the approved package into a plan, records dispatch, creates the one-shot
-               executor, verifies its evidence, records integration
-执行体          the only seat that changes the workspace, and only after a dispatch
-御史 Yushi     background scribe of confirmed mistakes (wiki/errors/)
-```
+Changes are tracked against a git shadow repository (works in non-git directories too): tree snapshot before execution, tree after, diff = the changes card; revert restores the pre-turn tree. A changes card can only be settled once (claimed under a lock); if the process dies holding an unsettled card, restart restores it and hands the gate back to the user.
 
-Codex Desktop: seats are project threads created with the Desktop's `codex_app` tools and titled `<seat>｜<task>`; the relay may open only 中书省; 中书 opens 门下省/尚书省/御史台; 尚书 opens 执行体. Claude Code: seats are native subagents (`.claude/agents/agentos-*.md`) spawned the same way.
-
-## Mechanical enforcement
-
-One shared hook, `aos_chain_gate.py` (byte-identical for both runtimes), decides on two facts:
-
-1. **Who is calling** — the runtime's agent identity on Claude, or the hook-owned thread registry (`agent-os/state/seats.json`, `agent-os/state/sessions/`) on Codex. A session that invoked `agentos` is bound as the relay; a session that did not is unbound and every hook is silent for it.
-2. **What the ledger says** — the append-only task record `agent-os/state/tasks/<task>.jsonl`.
-
-From these it enforces: the relay creates a task only with the user's exact words and no finish conditions; ledger lines are written only as the caller's own seat; skill receipts (`aos_skill_receipt.py`, SHA-256 of each seat's SKILL.md) before phase work; 门下 pass before 尚书 receives work; dispatch before the executor writes; terminal and failure records always writable; reads never denied; deny reasons name the next legal step. Nothing in the hooks classifies user intent from keywords.
-
-## Long-task state and memory
-
-Long work keeps a small session-local `active_work` record (goal, `done_when`, open items, next action, status, evidence). Pause/stop/resume are relay ledger records; delivery unbinds the relay. Project memory lives in the four root ledgers and `wiki/`; both survive updates.
-
-## Evidence boundary
-
-Tests, the linter, and the validator prove structure and hook behaviour on recorded inputs. Only a live session proves that a runtime trusted the hooks and that the seats did the thinking their skills require.
+Auto approval mode: the question gate is answered with "use your own recommendation, record the assumption", the contract is auto-approved, and the changes card is held while yushi audits first — clean audit auto-adopts, any filled deviation stops and waits for the human. Every automatic action is an `action` event flagged `auto:true`.

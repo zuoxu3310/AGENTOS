@@ -1,0 +1,157 @@
+{
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "title": "reply",
+ "type": "object",
+ "required": [
+  "understood",
+  "annotations",
+  "decisions",
+  "contract",
+  "reply"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "understood": {
+   "type": "object",
+   "description": "呈报第1步",
+   "required": [
+    "state",
+    "content",
+    "source"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "state": {
+     "type": "string",
+     "enum": [
+      "filled",
+      "could_not",
+      "not_applicable"
+     ]
+    },
+    "content": {
+     "type": "string",
+     "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+    },
+    "source": {
+     "type": "string",
+     "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+    }
+   }
+  },
+  "annotations": {
+   "type": "array",
+   "description": "呈报第2步；处置来自论证末节",
+   "items": {
+    "type": "object",
+    "description": "呈报第2步；处置来自论证末节",
+    "required": [
+     "state",
+     "content",
+     "source"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "state": {
+      "type": "string",
+      "enum": [
+       "filled",
+       "could_not",
+       "not_applicable"
+      ]
+     },
+     "content": {
+      "type": "string",
+      "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+     },
+     "source": {
+      "type": "string",
+      "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+     }
+    }
+   }
+  },
+  "decisions": {
+   "type": "array",
+   "maxItems": 1,
+   "description": "呈报第3步，至多一条",
+   "items": {
+    "type": "object",
+    "required": [
+     "q",
+     "opts"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "q": {
+      "type": "string"
+     },
+     "opts": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  },
+  "contract": {
+   "description": "呈报第4步；不需要时 null",
+   "anyOf": [
+    {
+     "type": "null"
+    },
+    {
+     "type": "object",
+     "required": [
+      "goal",
+      "done_when",
+      "assumptions",
+      "size",
+      "budget",
+      "not_doing"
+     ],
+     "additionalProperties": false,
+     "properties": {
+      "goal": {
+       "type": "string"
+      },
+      "done_when": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "assumptions": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "size": {
+       "type": "string",
+       "enum": [
+        "小",
+        "中",
+        "大"
+       ]
+      },
+      "budget": {
+       "type": "string"
+      },
+      "not_doing": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      }
+     }
+    }
+   ]
+  },
+  "reply": {
+   "type": "string",
+   "description": "呈报第5步：用户读到的正文"
+  }
+ }
+}

@@ -1,0 +1,2 @@
+{"$schema": "http://json-schema.org/draft-07/schema#", "title": "summary", "type": "object", "required": ["summary"], "additionalProperties": false,
+ "properties": {"summary": {"type": "string", "description": "不超过 800 字的对话摘要"}}}

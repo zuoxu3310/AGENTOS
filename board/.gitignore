@@ -1,0 +1,5 @@
+tasks/
+shadow/
+projects.json
+__pycache__/
+*.log

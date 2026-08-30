@@ -1,0 +1,17 @@
+{
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "title": "censor",
+ "type": "object",
+ "required": ["plan_vs_actual", "contract_traceability", "claim_vs_evidence", "deviations", "record_plan", "summary"],
+ "additionalProperties": false,
+ "properties": {
+  "plan_vs_actual": {"type": "array", "description": "逐项比第1步", "items": {"$ref": "#/$defs/f"}},
+  "contract_traceability": {"type": "array", "description": "逐项比第2步", "items": {"$ref": "#/$defs/f"}},
+  "claim_vs_evidence": {"type": "array", "description": "逐项比第3步", "items": {"$ref": "#/$defs/f"}},
+  "deviations": {"type": "array", "description": "逐项比第4步", "items": {"$ref": "#/$defs/f"}},
+  "record_plan": {"type": "array", "description": "逐项比第5步：该记的错误，每条一项", "items": {"$ref": "#/$defs/f"}},
+  "summary": {"type": "string", "description": "一句话：这次交付对不对得上契约，偏差几处"}
+ },
+ "$defs": {"f": {"type": "object", "required": ["state", "content", "source"], "additionalProperties": false,
+  "properties": {"state": {"type": "string", "enum": ["filled", "could_not", "not_applicable"]}, "content": {"type": "string"}, "source": {"type": "string"}}}}
+}

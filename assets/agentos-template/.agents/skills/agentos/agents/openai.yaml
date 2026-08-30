@@ -1,4 +1,0 @@
-interface:
-  display_name: "AgentOS 三省六部"
-  short_description: "Run the AgentOS chain as a relay for one task"
-  default_prompt: "Use $agentos to run the 三省六部 chain: carry my exact words to 中书省 and bring its reply back."

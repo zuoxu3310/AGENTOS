@@ -1,0 +1,55 @@
+{
+ "type": "object",
+ "properties": {
+  "status": {
+   "type": "string",
+   "enum": [
+    "done",
+    "partial",
+    "failed"
+   ],
+   "description": "done 每条完成条件都有证据；partial 部分；failed 没一条站得住"
+  },
+  "summary": {
+   "type": "string",
+   "description": "一句话整合结论"
+  },
+  "remaining": {
+   "type": "string",
+   "description": "没做完的；没有给空字符串"
+  },
+  "checks": {
+   "type": "array",
+   "description": "按契约 done_when 逐条核对",
+   "items": {
+    "type": "object",
+    "properties": {
+     "done_when": {
+      "type": "string",
+      "description": "完成条件原文"
+     },
+     "met": {
+      "type": "boolean"
+     },
+     "evidence": {
+      "type": "string",
+      "description": "执行体回报里的真实输出 / diff 里的证据；不是自述"
+     }
+    },
+    "required": [
+     "done_when",
+     "met",
+     "evidence"
+    ],
+    "additionalProperties": false
+   }
+  }
+ },
+ "required": [
+  "status",
+  "summary",
+  "remaining",
+  "checks"
+ ],
+ "additionalProperties": false
+}

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Engineering Plan Review"
-  short_description: "Three translations, pristine acceptance, time budget"
-  default_prompt: "Use $engineering-plan-review to run the three translations and the acceptance standard before turning an approved goal into execution nodes."

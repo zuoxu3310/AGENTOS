@@ -1,0 +1,283 @@
+{
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "title": "reading",
+ "type": "object",
+ "required": [
+  "quoted_spans",
+  "target_state",
+  "acceptance_checks",
+  "worth_and_precedent",
+  "alternative_reading",
+  "flip_item",
+  "ask_or_decide",
+  "pre_contract_packet",
+  "mind_change"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "quoted_spans": {
+   "type": "array",
+   "description": "读法与契约第1步",
+   "items": {
+    "type": "object",
+    "description": "读法与契约第1步",
+    "required": [
+     "state",
+     "content",
+     "source"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "state": {
+      "type": "string",
+      "enum": [
+       "filled",
+       "could_not",
+       "not_applicable"
+      ]
+     },
+     "content": {
+      "type": "string",
+      "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+     },
+     "source": {
+      "type": "string",
+      "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+     }
+    }
+   }
+  },
+  "target_state": {
+   "type": "array",
+   "description": "读法与契约第2步",
+   "items": {
+    "type": "object",
+    "description": "读法与契约第2步",
+    "required": [
+     "state",
+     "content",
+     "source"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "state": {
+      "type": "string",
+      "enum": [
+       "filled",
+       "could_not",
+       "not_applicable"
+      ]
+     },
+     "content": {
+      "type": "string",
+      "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+     },
+     "source": {
+      "type": "string",
+      "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+     }
+    }
+   }
+  },
+  "acceptance_checks": {
+   "type": "array",
+   "description": "读法与契约第3步",
+   "items": {
+    "type": "object",
+    "description": "读法与契约第3步",
+    "required": [
+     "state",
+     "content",
+     "source"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "state": {
+      "type": "string",
+      "enum": [
+       "filled",
+       "could_not",
+       "not_applicable"
+      ]
+     },
+     "content": {
+      "type": "string",
+      "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+     },
+     "source": {
+      "type": "string",
+      "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+     }
+    }
+   }
+  },
+  "worth_and_precedent": {
+   "type": "object",
+   "description": "读法与契约第4步",
+   "required": [
+    "state",
+    "content",
+    "source"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "state": {
+     "type": "string",
+     "enum": [
+      "filled",
+      "could_not",
+      "not_applicable"
+     ]
+    },
+    "content": {
+     "type": "string",
+     "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+    },
+    "source": {
+     "type": "string",
+     "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+    }
+   }
+  },
+  "alternative_reading": {
+   "type": "object",
+   "description": "读法与契约第5步",
+   "required": [
+    "state",
+    "content",
+    "source"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "state": {
+     "type": "string",
+     "enum": [
+      "filled",
+      "could_not",
+      "not_applicable"
+     ]
+    },
+    "content": {
+     "type": "string",
+     "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+    },
+    "source": {
+     "type": "string",
+     "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+    }
+   }
+  },
+  "flip_item": {
+   "type": "object",
+   "description": "读法与契约第6步",
+   "required": [
+    "state",
+    "content",
+    "source"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "state": {
+     "type": "string",
+     "enum": [
+      "filled",
+      "could_not",
+      "not_applicable"
+     ]
+    },
+    "content": {
+     "type": "string",
+     "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+    },
+    "source": {
+     "type": "string",
+     "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+    }
+   }
+  },
+  "ask_or_decide": {
+   "type": "object",
+   "description": "读法与契约第7步",
+   "required": [
+    "state",
+    "content",
+    "source"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "state": {
+     "type": "string",
+     "enum": [
+      "filled",
+      "could_not",
+      "not_applicable"
+     ]
+    },
+    "content": {
+     "type": "string",
+     "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+    },
+    "source": {
+     "type": "string",
+     "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+    }
+   }
+  },
+  "pre_contract_packet": {
+   "type": "object",
+   "description": "第一性原理第6步；没进第一性原理写 not_applicable",
+   "required": [
+    "state",
+    "content",
+    "source"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "state": {
+     "type": "string",
+     "enum": [
+      "filled",
+      "could_not",
+      "not_applicable"
+     ]
+    },
+    "content": {
+     "type": "string",
+     "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+    },
+    "source": {
+     "type": "string",
+     "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+    }
+   }
+  },
+  "mind_change": {
+   "type": "object",
+   "description": "反谄媚第5步；门下盲读时 not_applicable",
+   "required": [
+    "state",
+    "content",
+    "source"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "state": {
+     "type": "string",
+     "enum": [
+      "filled",
+      "could_not",
+      "not_applicable"
+     ]
+    },
+    "content": {
+     "type": "string",
+     "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+    },
+    "source": {
+     "type": "string",
+     "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+    }
+   }
+  }
+ }
+}

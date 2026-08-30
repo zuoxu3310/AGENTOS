@@ -1,1 +1,0 @@
-../../agent-os/rules-card.md

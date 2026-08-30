@@ -1,0 +1,41 @@
+{
+ "type": "object",
+ "properties": {
+  "status": {
+   "type": "string",
+   "enum": [
+    "completed",
+    "failed",
+    "blocked"
+   ],
+   "description": "completed 节点整体交付；failed 没做成；blocked 卡在用户才能定的事上"
+  },
+  "summary": {
+   "type": "string",
+   "description": "一句话：做了什么 / 为什么没成"
+  },
+  "evidence": {
+   "type": "string",
+   "description": "跑了什么命令、真实输出摘要（原文片段，不是自述）"
+  },
+  "files": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "description": "实际改过的文件，相对项目根"
+  },
+  "remaining": {
+   "type": "string",
+   "description": "没做完的；没有给空字符串"
+  }
+ },
+ "required": [
+  "status",
+  "summary",
+  "evidence",
+  "files",
+  "remaining"
+ ],
+ "additionalProperties": false
+}

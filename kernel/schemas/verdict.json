@@ -1,0 +1,359 @@
+{
+ "$schema": "http://json-schema.org/draft-07/schema#",
+ "title": "verdict",
+ "type": "object",
+ "required": [
+  "strong_request",
+  "reading_A",
+  "reading_B",
+  "real_disagreement",
+  "flip_variable",
+  "question",
+  "mind_change",
+  "field_map",
+  "live_diffs",
+  "objections",
+  "verdict",
+  "verdict_basis",
+  "verdict_why",
+  "return_question"
+ ],
+ "additionalProperties": false,
+ "properties": {
+  "strong_request": {
+   "type": "object",
+   "description": "反谄媚第1步",
+   "required": [
+    "state",
+    "content",
+    "source"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "state": {
+     "type": "string",
+     "enum": [
+      "filled",
+      "could_not",
+      "not_applicable"
+     ]
+    },
+    "content": {
+     "type": "string",
+     "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+    },
+    "source": {
+     "type": "string",
+     "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+    }
+   }
+  },
+  "reading_A": {
+   "type": "object",
+   "description": "反谄媚第2步",
+   "required": [
+    "state",
+    "content",
+    "source"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "state": {
+     "type": "string",
+     "enum": [
+      "filled",
+      "could_not",
+      "not_applicable"
+     ]
+    },
+    "content": {
+     "type": "string",
+     "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+    },
+    "source": {
+     "type": "string",
+     "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+    }
+   }
+  },
+  "reading_B": {
+   "type": "object",
+   "description": "反谄媚第2步",
+   "required": [
+    "state",
+    "content",
+    "source"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "state": {
+     "type": "string",
+     "enum": [
+      "filled",
+      "could_not",
+      "not_applicable"
+     ]
+    },
+    "content": {
+     "type": "string",
+     "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+    },
+    "source": {
+     "type": "string",
+     "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+    }
+   }
+  },
+  "real_disagreement": {
+   "type": "object",
+   "description": "反谄媚第3步",
+   "required": [
+    "state",
+    "content",
+    "source"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "state": {
+     "type": "string",
+     "enum": [
+      "filled",
+      "could_not",
+      "not_applicable"
+     ]
+    },
+    "content": {
+     "type": "string",
+     "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+    },
+    "source": {
+     "type": "string",
+     "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+    }
+   }
+  },
+  "flip_variable": {
+   "type": "object",
+   "description": "反谄媚第3步",
+   "required": [
+    "state",
+    "content",
+    "source"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "state": {
+     "type": "string",
+     "enum": [
+      "filled",
+      "could_not",
+      "not_applicable"
+     ]
+    },
+    "content": {
+     "type": "string",
+     "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+    },
+    "source": {
+     "type": "string",
+     "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+    }
+   }
+  },
+  "question": {
+   "type": "object",
+   "description": "反谄媚第4步，候选",
+   "required": [
+    "state",
+    "content",
+    "source"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "state": {
+     "type": "string",
+     "enum": [
+      "filled",
+      "could_not",
+      "not_applicable"
+     ]
+    },
+    "content": {
+     "type": "string",
+     "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+    },
+    "source": {
+     "type": "string",
+     "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+    }
+   }
+  },
+  "mind_change": {
+   "type": "object",
+   "description": "反谄媚第5步",
+   "required": [
+    "state",
+    "content",
+    "source"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "state": {
+     "type": "string",
+     "enum": [
+      "filled",
+      "could_not",
+      "not_applicable"
+     ]
+    },
+    "content": {
+     "type": "string",
+     "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+    },
+    "source": {
+     "type": "string",
+     "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+    }
+   }
+  },
+  "field_map": {
+   "type": "array",
+   "description": "论证第1步",
+   "items": {
+    "type": "object",
+    "description": "论证第1步",
+    "required": [
+     "state",
+     "content",
+     "source"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "state": {
+      "type": "string",
+      "enum": [
+       "filled",
+       "could_not",
+       "not_applicable"
+      ]
+     },
+     "content": {
+      "type": "string",
+      "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+     },
+     "source": {
+      "type": "string",
+      "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+     }
+    }
+   }
+  },
+  "live_diffs": {
+   "type": "array",
+   "description": "论证第2步",
+   "items": {
+    "type": "object",
+    "description": "论证第2步",
+    "required": [
+     "state",
+     "content",
+     "source"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "state": {
+      "type": "string",
+      "enum": [
+       "filled",
+       "could_not",
+       "not_applicable"
+      ]
+     },
+     "content": {
+      "type": "string",
+      "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+     },
+     "source": {
+      "type": "string",
+      "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+     }
+    }
+   }
+  },
+  "objections": {
+   "type": "array",
+   "description": "论证第3步",
+   "items": {
+    "type": "object",
+    "description": "论证第3步",
+    "required": [
+     "state",
+     "content",
+     "source"
+    ],
+    "additionalProperties": false,
+    "properties": {
+     "state": {
+      "type": "string",
+      "enum": [
+       "filled",
+       "could_not",
+       "not_applicable"
+      ]
+     },
+     "content": {
+      "type": "string",
+      "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+     },
+     "source": {
+      "type": "string",
+      "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+     }
+    }
+   }
+  },
+  "verdict": {
+   "type": "string",
+   "enum": [
+    "pass",
+    "modify",
+    "return"
+   ],
+   "description": "论证第4步：通过／改一处／退回"
+  },
+  "verdict_basis": {
+   "type": "string"
+  },
+  "verdict_why": {
+   "type": "string"
+  },
+  "return_question": {
+   "type": "object",
+   "description": "论证第4步；不是 return 时 not_applicable",
+   "required": [
+    "state",
+    "content",
+    "source"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "state": {
+     "type": "string",
+     "enum": [
+      "filled",
+      "could_not",
+      "not_applicable"
+     ]
+    },
+    "content": {
+     "type": "string",
+     "description": "填了：内容；填不出：无法……，缺……；不适用：依据"
+    },
+    "source": {
+     "type": "string",
+     "description": "来源：用户原话精确子串／文件路径行号／命令与输出；或原因"
+    }
+   }
+  }
+ }
+}

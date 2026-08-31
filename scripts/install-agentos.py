@@ -71,7 +71,18 @@ def main() -> None:
         p = os.path.expanduser(skdir)
         os.makedirs(p, exist_ok=True)
         open(os.path.join(p, "SKILL.md"), "w", encoding="utf-8").write(body)
+    linked = []
+    for name in sorted(os.listdir(os.path.join(dst, "kernel"))):          # 方法 skill 是通用的：注册成全局技能，任何模型任何目录都能单独调
+        skdirsrc = os.path.join(dst, "kernel", name)
+        if not os.path.isfile(os.path.join(skdirsrc, "SKILL.md")):
+            continue
+        for base in ("~/.claude/skills", "~/.agents/skills"):
+            tgt = os.path.join(os.path.expanduser(base), name)
+            if not os.path.exists(tgt) and not os.path.islink(tgt):
+                os.symlink(skdirsrc, tgt)
+                linked.append(tgt)
     print(f"装好了：{dst}")
+    print(f"通用方法技能注册：{len(linked)} 个软链（已存在同名的没动）")
     print(f"起面板：python3 {dst}/board/server.py 8765 ~/Downloads")
     print("会话入口：/agentos（Claude Code）、$agentos（Codex）——已写进全局 skills")
 

@@ -27,6 +27,8 @@ python3 scripts/install-agentos.py ~/AgentOS --source .
 
 This copies `board/` + `kernel/` and registers a global `agentos` skill, so `/agentos <task>` in Claude Code (or `$agentos` in Codex) from **any** directory operates the panel — the chat session is a panel operator, never a seat.
 
+It also registers every method skill in `kernel/` as a **standalone global skill** (first-principles, reading-and-contract, anti-sycophancy, argumentation, logical-reasoning, causal-inference, evidence-and-verification, engineering-plan, execute-node, reconciliation, report-to-user). They are deliberately role-free and chain-free: any model, any session, any runtime can invoke each method on its own — the chain is just one consumer of them.
+
 ## Layout
 
 | Path | What |

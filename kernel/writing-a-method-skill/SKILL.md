@@ -1,6 +1,6 @@
 ---
 name: writing-a-method-skill
-description: 写或改方法 skill 的宪法：固定形状、一步一物、判断步骤把「怎么做」写全、字段三态、白话不用行话、不写角色名。要新写一份方法 skill 之前用；要给某一步加字段、改走法时用；出了事故、忍不住想往现有 skill 里追加一条「注意」时，必须先读它——出了事故不追加规则，改走法、改字段或改程序。
+description: The constitution for writing or revising a method skill: fixed shape, one artifact per step, judgment steps spelled out as sub-steps each with a completion criterion, three-state fields, plain language with no project jargon and no role names. Use before writing a new method skill; when adding a field or changing a procedure; and whenever an incident tempts you to append a rule to an existing skill — incidents change the procedure, the fields, or the program, never add a warning.
 ---
 
 # 写方法 skill 的方法
@@ -20,7 +20,7 @@ skill 不属于任何角色。承担一件活的人一上手就把自己带的 s
 ```
 ---
 name: <字母、数字、连字符>
-description: <这份方法做什么、产出什么，一小句；然后写清何时用——第三人称，只写当事人眼前能看到的触发情形，不概括流程步骤；语言单一不混杂>
+description: <纯英文：一小句它做什么、产出什么，接着写何时用；第三人称，只写触发情形，不概括流程；不夹中文——中文只属于给用户的输出，description 是给模型读的>
 ---
 # <方法名>（<目录名>）
 用于：手上有 <什么>，要产出 <什么> 的时候。

@@ -1,6 +1,6 @@
 ---
 name: first-principles
-description: 用一条请求换回一份写目标之前的底稿：目的链、前提台账、要求逐条审计、最小必须发生集、「该不该」与「能不能」两列、只有用户能定的最小决策包。在写下任何目标或方案之前，遇到四种情形之一就用：这件事没有机制和环境都对得上的先例；旧先例赖以成立的条件已经变了（机器、规定、接口、量级）；照惯常做法走，成本或风险明显比同类高一截；有人说「不可能」或「必须这样」，却拿不出测量、法条原文、已签的接口或已批的预算。
+description: Turns one request into the groundwork that precedes any goal: a purpose chain traced back to the user's own words, a premise ledger separating verifiable fact, hard constraint, resource limit, assumption, convention and unknown, a requirement audit with reversible deletion, the minimum set of outcomes that must happen, should-do and can-do in separate columns, and the smallest packet of choices only the user can settle. Use before writing any goal or plan when: nothing comparable has been done before; the condition an old precedent relied on no longer holds (machine, rule, interface, scale); the usual way costs or risks far more than comparable work; or someone says impossible or mandatory without a measurement, a legal text, a signed interface, or an approved budget.
 ---
 
 # 第一性原理（first-principles）

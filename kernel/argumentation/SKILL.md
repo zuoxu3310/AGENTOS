@@ -1,6 +1,6 @@
 ---
 name: argumentation
-description: 把并排的两个说法按可重算的规则算成一句判决：通过、改一处、或退回带一问；反对意见要够格——指得到原话、说得出后果、给得出最小修复，谁断言谁举证。要对别人的读法、方案或工作下判词时用；自己被审、要逐条回应收到的反对意见时，用它的末节。
+description: Computes a verdict over two side-by-side positions under re-checkable rules: pass, amend one spot, or return with one question; an objection only counts if it points at exact quoted words, states the consequence for the work, and offers a minimal fix — whoever asserts must prove. Use when judging someone's reading, plan, or piece of work; use its final section when answering objections to one's own position, disposing of each one verbatim.
 ---
 
 # 论证（argumentation）

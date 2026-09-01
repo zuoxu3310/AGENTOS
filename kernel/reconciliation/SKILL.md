@@ -1,6 +1,6 @@
 ---
 name: reconciliation
-description: 交付之后的逐项比：计划对实际、契约对原话、说法对证据，每处偏差归类并配一条能重跑的定位，该记的错误判过同根后写进错误记录并读回核对。三种时刻用：一次交付刚发出去；时间预算用完而交付栏是空的；用户说这一轮做错了——读错要求、该做的没做、或交付里写的「完成」不实。手上要有这一轮的原话、契约、计划、执行记录和交付。
+description: Item-by-item reconciliation after a round of work: plan against actual, contract against the user's words, claims against raw evidence; every deviation classified and given a re-runnable locator, and errors worth recording matched by root cause against existing records, written in within the permitted scope, and read back. Use at three moments: a delivery just went out; the time budget is spent and nothing was handed over; or the user says the round went wrong — requirements misread, required work missing, or a 'done' that does not hold. Requires the round's materials: the user's words, the contract, the plan, the execution log, the delivery.
 ---
 
 # 逐项比（reconciliation）

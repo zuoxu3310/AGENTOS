@@ -1,6 +1,6 @@
 ---
 name: engineering-plan
-description: 拿一份批过的契约和时间预算，产出节点计划：开工顺序、先删再简化、现有行为边界、先后与并行、每节点用什么现成的（复用阶梯）、动哪一处（补丁堆才整块重写）、验证命令、逐节点估时；之后按契约核对全部节点的结果（只认原始输出，查越界、例外、旧代码、名字、错误去处、待办、写死的数字，出三档评语）；预算用完时停工对账。批过契约要开工之前、各节点回报齐了要验收时、计时走到预算时，三个时刻都用这一份。
+description: From an approved contract and a time budget, produces the node plan: work order, delete-then-simplify, existing-behavior boundaries, sequence and parallelism, what each node reuses along a reuse ladder, what each node touches — whole-root rewrite only for patch piles — one verification command per node, itemized time. Then checks all reported results against the contract on raw outputs only: boundary violations, side-exceptions, leftover old code, names, error sinks, TODO marks, bare numbers, ending in a three-grade review. Reconciles when the budget runs out. Use at three moments: before starting work on an approved contract, when every node has reported, and when the clock reaches the budget.
 ---
 
 # 工程计划（engineering-plan）

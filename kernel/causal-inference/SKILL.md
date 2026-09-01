@@ -1,6 +1,6 @@
 ---
 name: causal-inference
-description: 把一句因果话按证据阶梯定级：因果对照与时间线、相反解释、干预或识别假设、机制链与防复发证据，追责另有一步；走不到哪一级就不许用哪一级的词。要写任何带「导致、造成、根因、责任在、改了它就能修好」的句子，而且这句会导出一个改动或指向某个人、某个团队时，必须先走这一份；排查故障要下「就是它」的结论之前也是。
+description: Grades a causal sentence on an evidence ladder: explicit contrast and timeline, rival explanations, an intervention or stated identification assumptions, a mechanism chain with recurrence-prevention evidence, and a separate step for responsibility; each rung unlocks its wording — no rung, no word. Use before writing any sentence that says X caused Y, names a root cause, assigns responsibility, or promises that changing X will fix Y, whenever that sentence will lead to a change or point at a person or a team; also before concluding 'it is this one' while debugging.
 ---
 
 # 因果推断（causal-inference）

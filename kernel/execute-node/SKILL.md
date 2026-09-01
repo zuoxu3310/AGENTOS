@@ -1,6 +1,6 @@
 ---
 name: execute-node
-description: 领到计划派下的一块活——目标、允许改的文件、计划挑好的做法、一条验证命令——照着做出最小改动并交报告。动手改文件之前用：先从入口到出口把代码读一遍、搜全调用者，再按计划的做法改，只跑给定的那条验证。验证没过想再试一次时回到它：换的是链条上的另一环，同一条验证连败两次就停；发现计划挑的做法在代码里走不通时也回到它：写下路径行号和读到的实际情况交回去，不自己另挑做法。
+description: Takes one planned piece of work — goal, files allowed to change, the mechanism the plan already chose, one verification command — and delivers the smallest change plus a report. Use before touching any file: first read the code from entry to exit and search out every caller, then change along the chosen mechanism, then run only the given verification. Return here when verification fails and a retry is tempting: the retry must change a different link in the chain, and two failures of the same verification stop the work. Return here too when the chosen mechanism does not fit the code as read: write the evidence down with paths and line numbers and hand it back — never pick a new mechanism oneself.
 ---
 
 # 照计划执行（execute-node）

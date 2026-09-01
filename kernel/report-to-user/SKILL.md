@@ -1,6 +1,6 @@
 ---
 name: report-to-user
-description: 写提要求的人会读的那一条回话：一句读法（用他的词、限定词一个不减）、逐条回应审读意见（逐字引用，采纳写旧→新）、至多一件真正只有他能定的事（能查的先查、有可撤回默认的先默认）、这一轮的契约、按「要决定／要资源／只让他知道」选句式拼正文。要开口回复提要求的人之前用；手里有一条「只有他能定」的候选、要决定这一轮问不问时用；写进度、要交代做砸或卡住的事时也用。
+description: Writes the one reply the requester will read: their request in one sentence in their own words with every qualifier kept, a point-by-point response to review comments quoting them verbatim, at most one question only the requester can settle — look things up first, take reversible defaults first — the round's contract, and a body assembled by what the reply must obtain: a decision, resources, or awareness. Use before speaking to the requester; when a candidate only they can decide has arrived and it must be decided whether this turn asks it; and for progress reports, including rounds that failed or stalled.
 ---
 
 # 呈报（report-to-user）

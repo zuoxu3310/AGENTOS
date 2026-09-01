@@ -1,6 +1,6 @@
 ---
 name: anti-sycophancy
-description: 下结论之前把先入之见摆到纸面上的一遍工序：最强重述、给两个说法各写最有力版本、真实分歧与能翻盘的变量、改口记录。凡是同一件事摆着两个说法——自己的和另一个（别人独立写下的，或自己写的另一种读法）——而且有股劲想选省事的、资历高的、或自己那个时，结论落笔之前先走这一遍；评审别人的工作、复核自己的读法、给出建议之前都算。
+description: Puts preconceptions on paper before a judgment settles: the strongest restatement of the request, the most forceful version of each of two positions, the real disagreement and the one variable that could flip it, and a mind-change record where only material with different expectations under A and B counts as a reason to switch. Use whenever two positions on the same question are on hand — one's own and a second, independently written or one's own alternative reading — and there is pull toward the easier one, the more senior one, or one's own; before reviewing someone's work, settling a reading, or writing a recommendation.
 ---
 
 # 反谄媚（anti-sycophancy）

@@ -1,6 +1,6 @@
 ---
 name: causal-inference
-description: Use when about to write X 导致 Y, 根因是…, 责任在…, or 改 X 会修好 Y, and that sentence will lead to a change or point at a person or a team.
+description: 把一句因果话按证据阶梯定级：因果对照与时间线、相反解释、干预或识别假设、机制链与防复发证据，追责另有一步；走不到哪一级就不许用哪一级的词。要写任何带「导致、造成、根因、责任在、改了它就能修好」的句子，而且这句会导出一个改动或指向某个人、某个团队时，必须先走这一份；排查故障要下「就是它」的结论之前也是。
 ---
 
 # 因果推断（causal-inference）

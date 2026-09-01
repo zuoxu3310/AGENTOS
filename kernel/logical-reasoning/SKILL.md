@@ -1,6 +1,6 @@
 ---
 name: logical-reasoning
-description: Use when about to write a sentence containing 所以, 因此, 这说明 or 建议, or any judgment or recommendation that rests on an inference drawn from the materials at hand.
+description: 落笔前把一句推理钉在证据上：抄原文证据、写前提和从前提走到结论的那一步理由、造反例或找相反解释；措辞只能强到实际走完的那一步。要写任何带「所以、因此、这说明、建议」的句子之前用；任何靠推理撑着的判断或建议，哪怕看起来显然，落笔前也过一遍。说原因、根因、责任的句子改走「因果推断」。
 ---
 
 # 逻辑推理（logical-reasoning）

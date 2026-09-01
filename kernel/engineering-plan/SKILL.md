@@ -1,6 +1,6 @@
 ---
 name: engineering-plan
-description: Use when an approved contract of goal and finish conditions arrives together with a time budget and a plan of work nodes must be produced, when every node has reported and the results must be checked against that contract, or when the plan's time budget runs out.
+description: 拿一份批过的契约和时间预算，产出节点计划：开工顺序、先删再简化、现有行为边界、先后与并行、每节点用什么现成的（复用阶梯）、动哪一处（补丁堆才整块重写）、验证命令、逐节点估时；之后按契约核对全部节点的结果（只认原始输出，查越界、例外、旧代码、名字、错误去处、待办、写死的数字，出三档评语）；预算用完时停工对账。批过契约要开工之前、各节点回报齐了要验收时、计时走到预算时，三个时刻都用这一份。
 ---
 
 # 工程计划（engineering-plan）

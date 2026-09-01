@@ -1,6 +1,6 @@
 ---
 name: reading-and-contract
-description: Use when a new user message must be turned into a reading before any work starts, when one request can be read in more than one way, or when it is unclear whether to ask the user or to decide and write down the assumption.
+description: 把用户的一条消息变成一份可批的契约草案：目标、可观察的完成条件、值不值得做与有没有现成的、第二种读法、假设、大小与预算。收到新任务、用户改口或追加要求、开工之前要先定读法时用；一句话能读出不止一种做法时用；拿不准该问用户还是该自己定并写下假设时，更要用。
 ---
 
 # 读法与契约（reading-and-contract）

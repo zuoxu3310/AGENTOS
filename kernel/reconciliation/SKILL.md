@@ -1,6 +1,6 @@
 ---
 name: reconciliation
-description: Use when a delivery has just gone out, when a task used up its time budget without handing anything over, or when the user says the round of work went wrong, and the user's message, the agreed goal, the plan, the execution records and the delivery are all in hand.
+description: 交付之后的逐项比：计划对实际、契约对原话、说法对证据，每处偏差归类并配一条能重跑的定位，该记的错误判过同根后写进错误记录并读回核对。三种时刻用：一次交付刚发出去；时间预算用完而交付栏是空的；用户说这一轮做错了——读错要求、该做的没做、或交付里写的「完成」不实。手上要有这一轮的原话、契约、计划、执行记录和交付。
 ---
 
 # 逐项比（reconciliation）

@@ -1,6 +1,6 @@
 ---
 name: execute-node
-description: Use when one planned piece of work is in hand — its goal, the files allowed to change, the mechanism the plan already chose, one verification command — and files are about to be touched; also when that verification just failed and another attempt is tempting, or when the chosen mechanism turns out not to fit the code as read.
+description: 领到计划派下的一块活——目标、允许改的文件、计划挑好的做法、一条验证命令——照着做出最小改动并交报告。动手改文件之前用：先从入口到出口把代码读一遍、搜全调用者，再按计划的做法改，只跑给定的那条验证。验证没过想再试一次时回到它：换的是链条上的另一环，同一条验证连败两次就停；发现计划挑的做法在代码里走不通时也回到它：写下路径行号和读到的实际情况交回去，不自己另挑做法。
 ---
 
 # 照计划执行（execute-node）

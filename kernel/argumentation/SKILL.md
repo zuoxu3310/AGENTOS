@@ -1,6 +1,6 @@
 ---
 name: argumentation
-description: Use when two positions on the same question sit side by side with the de-anchoring records on hand and one verdict has to be reached - accept, amend one spot, or send back with a question; also when the author of the reviewed position answers the objections that came back.
+description: 把并排的两个说法按可重算的规则算成一句判决：通过、改一处、或退回带一问；反对意见要够格——指得到原话、说得出后果、给得出最小修复，谁断言谁举证。要对别人的读法、方案或工作下判词时用；自己被审、要逐条回应收到的反对意见时，用它的末节。
 ---
 
 # 论证（argumentation）

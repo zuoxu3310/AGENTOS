@@ -1,6 +1,6 @@
 ---
 name: evidence-and-verification
-description: Use when about to write 完成、通过、看到、做好了 or wording of that strength into a reply, report, or record; when holding a result someone else produced and about to use it as a conclusion; when checking a delivered result against the conditions that say what counts as done.
+description: 说「做完了」之前的三张表：逐条核完成条件（自己跑、自己看、留原样输出），逐句给关键话配证据格（撑不住就把话改小，不把证据说大），把自己没核过的话全部标成声称。要写「完成、通过、看到、修好了」这类话之前用；拿着别人交来的结果——子代理的总结、工具报的「成功」、测试摘要——要当结论用之前用；按完成条件验收一份交付时也用。
 ---
 
 # 证据与核验（evidence-and-verification）
